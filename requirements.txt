@@ -1,0 +1,7 @@
+streamlit
+requests
+pandas
+mapbox-gl
+mapboxgl
+@mapbox/mapbox-gl-draw
+@turf/turf
