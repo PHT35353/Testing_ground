@@ -45,7 +45,8 @@ latitude = str(latitude)
 
 # Ensure longitude and latitude have valid default values
 if not latitude or not longitude:
-latitude, longitude = default_location
+    latitude, longitude = default_location
+
 
 # Mapbox GL JS API token
 mapbox_access_token = "your_mapbox_access_token_here"
