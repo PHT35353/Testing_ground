@@ -161,7 +161,7 @@ mapbox_map_html = f"""
 
         // Send the measurements to the Streamlit Python code using window.postMessage
         window.parent.postMessage({ type: "measurements", data: measurements }, "*");
-    }
+    }}
 
     map.on('draw.create', updateMeasurements);
     map.on('draw.update', updateMeasurements);
