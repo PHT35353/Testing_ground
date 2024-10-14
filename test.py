@@ -183,7 +183,7 @@ mapbox_map_html = f"""
         if (event.data.type === 'streamlit:measurement') {{
             Streamlit.setComponentValue(event.data.data);
         }}
-   } });
+    }});
 </script>
 </body>
 </html>
