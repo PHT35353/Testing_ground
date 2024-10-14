@@ -21,7 +21,6 @@ This tool allows you to:
 # Sidebar to manage the map interactions
 st.sidebar.title("Map Controls")
 
-st.write(f"Debug - Longitude: {longitude}, Latitude: {latitude}")
 
 
 # Default location set to Amsterdam, Netherlands
@@ -31,25 +30,35 @@ default_location = [52.3676, 4.9041]
 latitude = st.sidebar.number_input("Latitude", value=default_location[0])
 longitude = st.sidebar.number_input("Longitude", value=default_location[1])
 
-# Search bar for address search
-address_search = st.sidebar.text_input("Search for address (requires internet connection)")
+# Ensure longitude and latitude have valid values
+latitude = float(latitude) if latitude else default_location[0]
+longitude = float(longitude) if longitude else default_location[1]
 
 # Button to search for a location
 if st.sidebar.button("Search Location"):
-    default_location = [latitude, longitude]
+    if address_search:
+        geocode_url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{address_search}.json?access_token=your_mapbox_access_token_here"
+        try:
+            response = requests.get(geocode_url)
+            if response.status_code == 200:
+                geo_data = response.json()
+                if len(geo_data['features']) > 0:
+                    coordinates = geo_data['features'][0]['center']
+                    latitude, longitude = coordinates[1], coordinates[0]
+                    st.sidebar.success(f"Address found: {geo_data['features'][0]['place_name']}")
+                    st.sidebar.write(f"Coordinates: Latitude {latitude}, Longitude {longitude}")
+                else:
+                    st.sidebar.error("Address not found.")
+            else:
+                st.sidebar.error("Error connecting to the Mapbox API.")
+        except Exception as e:
+            st.sidebar.error(f"Error: {e}")
 
-
-longitude = str(longitude)
-latitude = str(latitude)
-
-
-# Ensure longitude and latitude have valid default values
-if not latitude or not longitude:
-    latitude, longitude = default_location
-
+# Search bar for address search
+address_search = st.sidebar.text_input("Search for address (requires internet connection)")
 
 # Mapbox GL JS API token
-mapbox_access_token = "your_mapbox_access_token_here"
+mapbox_access_token = "pk.eyJ1IjoicGFyc2ExMzgzIiwiYSI6ImNtMWRqZmZreDB6MHMyaXNianJpYWNhcGQifQ.hot5D26TtggHFx9IFM-9Vw"
 
 
 # HTML and JS for Mapbox with Mapbox Draw plugin to add drawing functionalities
@@ -212,29 +221,16 @@ if 'measurements' in st.session_state:
     st.write("Received Measurements:")
     st.json(st.session_state['measurements'])
 
-# Handle Address Search (as before)
-if address_search:
-    geocode_url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{address_search}.json?access_token={mapbox_access_token}"
-    try:
-        response = requests.get(geocode_url)
-        if response.status_code == 200:
-            geo_data = response.json()
-            if len(geo_data['features']) > 0:
-                coordinates = geo_data['features'][0]['center']
-                latitude, longitude = coordinates[1], coordinates[0]
-                st.sidebar.success(f"Address found: {geo_data['features'][0]['place_name']}")
-                st.sidebar.write(f"Coordinates: Latitude {latitude}, Longitude {longitude}")
-            else:
-                st.sidebar.error("Address not found.")
-        else:
-            st.sidebar.error("Error connecting to the Mapbox API.")
-    except Exception as e:
-        st.sidebar.error(f"Error: {e}")
 
 
 # Create a placeholder to capture the received measurements
 if 'measurements' not in st.session_state:
     st.session_state['measurements'] = []
+
+def handle_js_message(data):
+    # Update session state based on received message
+    if data['type'] == "measurements":
+        st.session_state['measurements'] = data['data']
 
 # Assume a function or mechanism exists to update the session state from JavaScript:
 # st.session_state['measurements'] should be populated based on the JavaScript message.
@@ -248,17 +244,6 @@ if st.session_state['measurements']:
     distance_value_km = st.session_state['measurements'][0]['length']
     distance_value_m = distance_value_km * 1000
 
-    # Call your pipe calculation functions here
-    pressure = st.number_input("Enter the pressure (bar):", min_value=0.0, format="%.2f")
-    temperature = st.number_input("Enter the temperature (°C):", min_value=0.0, format="%.2f")
-    medium = st.text_input("Enter the medium:")
-
-    if st.button("Find Pipes"):
-        Pipe_Material = choose_pipe_material(pressure, temperature, medium)
-        st.write(f"Selected Pipe Material: {Pipe_Material}")
-
-        # Use the captured distance in the calculation
-        Pipe_finder(Pipe_Material, pressure, distance_value_m)
       
 # Pipe data dictionaries
 B1001_data_dict = {
