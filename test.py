@@ -21,6 +21,9 @@ This tool allows you to:
 # Sidebar to manage the map interactions
 st.sidebar.title("Map Controls")
 
+st.write(f"Debug - Longitude: {longitude}, Latitude: {latitude}")
+
+
 # Default location set to Amsterdam, Netherlands
 default_location = [52.3676, 4.9041]
 
@@ -35,8 +38,18 @@ address_search = st.sidebar.text_input("Search for address (requires internet co
 if st.sidebar.button("Search Location"):
     default_location = [latitude, longitude]
 
+
+longitude = str(longitude)
+latitude = str(latitude)
+
+
+# Ensure longitude and latitude have valid default values
+if not latitude or not longitude:
+latitude, longitude = default_location
+
 # Mapbox GL JS API token
 mapbox_access_token = "your_mapbox_access_token_here"
+
 
 # HTML and JS for Mapbox with Mapbox Draw plugin to add drawing functionalities
 mapbox_map_html = f"""
