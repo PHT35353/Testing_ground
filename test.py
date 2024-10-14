@@ -1,6 +1,8 @@
 import streamlit as st
 import streamlit.components.v1 as components
+import json
 import requests
+import pandas as pd  # Import Pandas for DataFrame operations
 
 # Set up a title for the app
 st.title("Piping tool")
@@ -21,8 +23,6 @@ This tool allows you to:
 # Sidebar to manage the map interactions
 st.sidebar.title("Map Controls")
 
-
-
 # Default location set to Amsterdam, Netherlands
 default_location = [52.3676, 4.9041]
 
@@ -30,9 +30,8 @@ default_location = [52.3676, 4.9041]
 latitude = st.sidebar.number_input("Latitude", value=default_location[0])
 longitude = st.sidebar.number_input("Longitude", value=default_location[1])
 
-# Ensure longitude and latitude have valid values
-latitude = float(latitude) if latitude else default_location[0]
-longitude = float(longitude) if longitude else default_location[1]
+# Search bar for address search
+address_search = st.sidebar.text_input("Search for address (requires internet connection)")
 
 # Button to search for a location
 if st.sidebar.button("Search Location"):
@@ -54,12 +53,8 @@ if st.sidebar.button("Search Location"):
         except Exception as e:
             st.sidebar.error(f"Error: {e}")
 
-# Search bar for address search
-address_search = st.sidebar.text_input("Search for address (requires internet connection)")
-
 # Mapbox GL JS API token
 mapbox_access_token = "pk.eyJ1IjoicGFyc2ExMzgzIiwiYSI6ImNtMWRqZmZreDB6MHMyaXNianJpYWNhcGQifQ.hot5D26TtggHFx9IFM-9Vw"
-
 
 # HTML and JS for Mapbox with Mapbox Draw plugin to add drawing functionalities
 mapbox_map_html = f"""
@@ -136,7 +131,7 @@ mapbox_map_html = f"""
 <button id="toggleSidebar" onclick="toggleSidebar()">Collapse</button>
 <div id="map"></div>
 <script>
-    mapboxgl.accessToken = '{mapbox_access_token}';
+   mapboxgl.accessToken = '{mapbox_access_token}';
 
     const map = new mapboxgl.Map({{
         container: 'map',
@@ -182,8 +177,8 @@ mapbox_map_html = f"""
             }});
         }}
 
-        // Send the measurements to the Streamlit Python code using window.postMessage
-        window.parent.postMessage({ type: "measurements", data: measurements }, "*");
+        // Send the measurements to the Streamlit Python code using window.parent.postMessage
+        window.parent.postMessage({{ type: "measurements", data: JSON.stringify(measurements) }}, "*");
     }}
 
     map.on('draw.create', updateMeasurements);
@@ -200,42 +195,29 @@ mapbox_map_html = f"""
             document.getElementById('toggleSidebar').innerText = "Open Sidebar";
         }}
     }}
-
-    // Add event listener to post messages to Streamlit
-    window.addEventListener('message', (event) => {{
-        if (event.data.type === 'streamlit:measurement') {{
-            Streamlit.setComponentValue(event.data.data);
-        }}
-    }});
 </script>
 </body>
 </html>
 """
 
-# Render the HTML/JS in Streamlit
-components.html(mapbox_map_html, height=600)
+# Use components.html to render the map with embedded JavaScript
+mapbox_component = components.html(
+    mapbox_map_html,
+    height=600,
+)
 
-# Use the data from the JavaScript side in the Python code
-# (This requires integration with Streamlit event handling)
-if 'measurements' in st.session_state:
-    st.write("Received Measurements:")
-    st.json(st.session_state['measurements'])
+# Use a custom JavaScript listener to get messages from the map
+measurement_data = st.experimental_get_query_params().get("measurements")
 
+# If measurement data is received, update the session state
+if measurement_data:
+    st.session_state['measurements'] = json.loads(measurement_data[0])
 
-
-# Create a placeholder to capture the received measurements
+# Create a placeholder for the received measurements in session state
 if 'measurements' not in st.session_state:
     st.session_state['measurements'] = []
 
-def handle_js_message(data):
-    # Update session state based on received message
-    if data['type'] == "measurements":
-        st.session_state['measurements'] = data['data']
-
-# Assume a function or mechanism exists to update the session state from JavaScript:
-# st.session_state['measurements'] should be populated based on the JavaScript message.
-
-# Use the captured distance for price calculations
+# Display received measurements (if any)
 if st.session_state['measurements']:
     st.write("Received Measurements:")
     st.json(st.session_state['measurements'])
@@ -243,6 +225,8 @@ if st.session_state['measurements']:
     # Example usage of the distance in your pipe calculations
     distance_value_km = st.session_state['measurements'][0]['length']
     distance_value_m = distance_value_km * 1000
+
+
 
       
 # Pipe data dictionaries
