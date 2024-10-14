@@ -1,11 +1,10 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import json
-import requests
-import pandas as pd  # Import Pandas for DataFrame operations
+import pandas as pd
 
 # Set up a title for the app
-st.title("Piping tool")
+st.title("Piping Tool")
 
 # Add instructions and explain color options
 st.markdown("""
@@ -30,31 +29,8 @@ default_location = [52.3676, 4.9041]
 latitude = st.sidebar.number_input("Latitude", value=default_location[0])
 longitude = st.sidebar.number_input("Longitude", value=default_location[1])
 
-# Search bar for address search
-address_search = st.sidebar.text_input("Search for address (requires internet connection)")
-
-# Button to search for a location
-if st.sidebar.button("Search Location"):
-    if address_search:
-        geocode_url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{address_search}.json?access_token=your_mapbox_access_token_here"
-        try:
-            response = requests.get(geocode_url)
-            if response.status_code == 200:
-                geo_data = response.json()
-                if len(geo_data['features']) > 0:
-                    coordinates = geo_data['features'][0]['center']
-                    latitude, longitude = coordinates[1], coordinates[0]
-                    st.sidebar.success(f"Address found: {geo_data['features'][0]['place_name']}")
-                    st.sidebar.write(f"Coordinates: Latitude {latitude}, Longitude {longitude}")
-                else:
-                    st.sidebar.error("Address not found.")
-            else:
-                st.sidebar.error("Error connecting to the Mapbox API.")
-        except Exception as e:
-            st.sidebar.error(f"Error: {e}")
-
 # Mapbox GL JS API token
-mapbox_access_token = "pk.eyJ1IjoicGFyc2ExMzgzIiwiYSI6ImNtMWRqZmZreDB6MHMyaXNianJpYWNhcGQifQ.hot5D26TtggHFx9IFM-9Vw"
+mapbox_access_token = "your_mapbox_access_token_here"
 
 # HTML and JS for Mapbox with Mapbox Draw plugin to add drawing functionalities
 mapbox_map_html = f"""
@@ -131,7 +107,7 @@ mapbox_map_html = f"""
 <button id="toggleSidebar" onclick="toggleSidebar()">Collapse</button>
 <div id="map"></div>
 <script>
-   mapboxgl.accessToken = '{mapbox_access_token}';
+    mapboxgl.accessToken = '{mapbox_access_token}';
 
     const map = new mapboxgl.Map({{
         container: 'map',
@@ -177,6 +153,9 @@ mapbox_map_html = f"""
             }});
         }}
 
+        // Update the sidebar content
+        document.getElementById('measurements').innerHTML = JSON.stringify(measurements, null, 2);
+
         // Send the measurements to the Streamlit Python code using window.parent.postMessage
         window.parent.postMessage({{ type: "measurements", data: JSON.stringify(measurements) }}, "*");
     }}
@@ -204,27 +183,35 @@ mapbox_map_html = f"""
 mapbox_component = components.html(
     mapbox_map_html,
     height=600,
+    scrolling=True
 )
 
-# Use a custom JavaScript listener to get messages from the map
-measurement_data = st.experimental_get_query_params().get("measurements")
+# Handle JavaScript to Python data exchange
+measurement_data = st.session_state.get('measurements', [])
 
-# If measurement data is received, update the session state
-if measurement_data:
-    st.session_state['measurements'] = json.loads(measurement_data[0])
-
-# Create a placeholder for the received measurements in session state
 if 'measurements' not in st.session_state:
     st.session_state['measurements'] = []
 
-# Display received measurements (if any)
+# Placeholder to receive JavaScript messages
+message = st.experimental_get_query_params().get('measurements')
+if message:
+    st.session_state['measurements'] = json.loads(message[0])
+
+# Display received measurements in the Streamlit sidebar (if any)
 if st.session_state['measurements']:
-    st.write("Received Measurements:")
-    st.json(st.session_state['measurements'])
+    st.sidebar.write("Received Measurements:")
+    st.sidebar.json(st.session_state['measurements'])
 
     # Example usage of the distance in your pipe calculations
     distance_value_km = st.session_state['measurements'][0]['length']
     distance_value_m = distance_value_km * 1000
+
+    # Pipe calculations can be done here using the `distance_value_m`.
+    st.write(f"Calculated Pipe Length (in meters): {distance_value_m}")
+
+    # Insert the rest of your pipe cost calculation code here, using distance_value_m
+
+
 
 
 
