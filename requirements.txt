@@ -1,6 +1,5 @@
 streamlit
 requests
 pandas
-mapbox-gl
 @mapbox/mapbox-gl-draw
 @turf/turf
