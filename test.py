@@ -1,9 +1,10 @@
 import streamlit as st
+import streamlit_javascript as stjs
 import pandas as pd
 import math
-import streamlit.components.v1 as components
 import requests
 import json
+
 
 # Set up a title for the app
 st.title("Piping tool")
@@ -324,19 +325,20 @@ mapbox_map_html = f"""
 </html>
 """
 
-# Render the Mapbox map and receive data from JavaScript
-distanceValue = components.html(
-    mapbox_map_html,
-    height=600,
-    scrolling=True
-)
+components.html(mapbox_map_html, height=600)
+
+# Use the JavaScript callback
+distanceValue = stjs.get_event()
 
 if distanceValue:
     try:
-        # Assuming distance_data is received as a JSON string
-        data = json.loads(distanceValue)
-        if data.get('type') == 'distanceUpdate':
-            handle_distance_update(data['distances'])
+        event_data = json.loads(event)
+        if event_data.get("type") == "distanceUpdate":
+            distances = event_data.get("distances", [])
+            if 'line_distances' not in st.session_state:
+                st.session_state['line_distances'] = []
+            st.session_state['line_distances'] = distances
+            st.write(f"Received distances: {distances}")
     except Exception as e:
         st.error(f"Error processing distance data: {e}")
 
