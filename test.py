@@ -414,7 +414,7 @@ def get_user_inputs():
     medium = st.text_input("Enter the medium:")
     
     # Add a field for the user to input the distance from the map's sidebar
-    distance = distance_value_km
+    distance = st.number_input("Enter the pipe length (meters):", min_value=0.0, format="%.2f")
     
     return pressure, temperature, medium, distance
 
