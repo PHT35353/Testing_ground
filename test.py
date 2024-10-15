@@ -327,10 +327,6 @@ mapbox_map_html = f"""
 """
 components.html(mapbox_map_html, height=600)
 
-# Use the JavaScript callback
-# Render the Mapbox map and receive data from JavaScript
-components.html(mapbox_map_html, height=600)
-
 # Use JavaScript callback to get the distance value
 distanceValue = stjs("await new Promise((resolve) => { window.addEventListener('message', (event) => { if (event.data.type === 'distanceUpdate') { resolve(event.data.distances); }}); });")
 
