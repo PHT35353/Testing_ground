@@ -30,7 +30,7 @@ latitude = st.sidebar.number_input("Latitude", value=default_location[0])
 longitude = st.sidebar.number_input("Longitude", value=default_location[1])
 
 # Mapbox GL JS API token
-mapbox_access_token = "your_mapbox_access_token_here"
+mapbox_access_token = "pk.eyJ1IjoicGFyc2ExMzgzIiwiYSI6ImNtMWRqZmZreDB6MHMyaXNianJpYWNhcGQifQ.hot5D26TtggHFx9IFM-9Vw"
 
 # HTML and JS for Mapbox with Mapbox Draw plugin to add drawing functionalities
 mapbox_map_html = f"""
