@@ -331,7 +331,7 @@ distanceValue = components.html(
     scrolling=True
 )
 
-if distanceValuea:
+if distanceValue:
     try:
         # Assuming distance_data is received as a JSON string
         data = json.loads(distanceValue)
