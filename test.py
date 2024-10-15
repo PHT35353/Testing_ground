@@ -5,7 +5,7 @@ import math
 import requests
 import json
 import streamlit.components.v1 as components
-
+from streamlit_javascript import st_javascript as stjs 
 
 # Set up a title for the app
 st.title("Piping tool")
