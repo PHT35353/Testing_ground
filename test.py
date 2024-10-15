@@ -325,13 +325,13 @@ mapbox_map_html = f"""
 """
 
 # Render the Mapbox map and receive data from JavaScript
-distance_data = components.html(
+distanceValue = components.html(
     mapbox_map_html,
     height=600,
     scrolling=True
 )
 
-if distance_data:
+if distanceValuea:
     try:
         # Assuming distance_data is received as a JSON string
         data = json.loads(distanceValue)
