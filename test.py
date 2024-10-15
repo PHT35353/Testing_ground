@@ -1,10 +1,11 @@
 import streamlit as st
-import streamlit.components.v1 as components
-import json
 import pandas as pd
+import math
+import streamlit.components.v1 as components
+import requests
 
 # Set up a title for the app
-st.title("Piping Tool")
+st.title("Piping tool")
 
 # Add instructions and explain color options
 st.markdown("""
@@ -29,9 +30,21 @@ default_location = [52.3676, 4.9041]
 latitude = st.sidebar.number_input("Latitude", value=default_location[0])
 longitude = st.sidebar.number_input("Longitude", value=default_location[1])
 
+# Search bar for address search
+address_search = st.sidebar.text_input("Search for address (requires internet connection)")
+
+# Button to search for a location
+if st.sidebar.button("Search Location"):
+    default_location = [latitude, longitude]
+
 # Mapbox GL JS API token
 mapbox_access_token = "pk.eyJ1IjoicGFyc2ExMzgzIiwiYSI6ImNtMWRqZmZreDB6MHMyaXNianJpYWNhcGQifQ.hot5D26TtggHFx9IFM-9Vw"
 
+# Function to process distance data received from JavaScript
+def handle_distance_update(distance_data):
+    if 'line_distances' not in st.session_state:
+        st.session_state['line_distances'] = []
+    st.session_state['line_distances'] = distance_data
 # HTML and JS for Mapbox with Mapbox Draw plugin to add drawing functionalities
 mapbox_map_html = f"""
 <!DOCTYPE html>
@@ -114,8 +127,8 @@ mapbox_map_html = f"""
         style: 'mapbox://styles/mapbox/satellite-streets-v12',
         center: [{longitude}, {latitude}],
         zoom: 13,
-        pitch: 45,
-        bearing: 0,
+        pitch: 45, // For 3D effect
+        bearing: 0, // Rotation angle
         antialias: true
     }});
 
@@ -140,29 +153,169 @@ mapbox_map_html = f"""
 
     map.addControl(Draw);
 
-    function updateMeasurements() {{
-        const data = Draw.getAll();
-        let measurements = [];
+      // Function to handle drawn features and send distances back to Streamlit
+        function updateMeasurements(e) {{
+            const data = Draw.getAll();
+            let totalDistances = [];
 
-        if (data.features.length > 0) {{
-            data.features.forEach((feature) => {{
-                if (feature.geometry.type === "LineString") {{
-                    const length = turf.length(feature, {{ units: "kilometers" }});
-                    measurements.push({{ id: feature.id, type: "LineString", length: length }});
-                }}
-            }});
+            if (data.features.length > 0) {{
+                data.features.forEach(function (feature) {{
+                    if (feature.geometry.type === 'LineString') {{
+                        const length = turf.length(feature);  // Get the length of the line
+                        totalDistances.push(length);
+                    }}
+                }});
+            }}
+
+            // Send the distances to Streamlit using window.parent.postMessage
+            window.parent.postMessage({ type: 'distanceUpdate', distances: totalDistances }, '*');
         }}
 
-        // Update the sidebar content
-        document.getElementById('measurements').innerHTML = JSON.stringify(measurements, null, 2);
+        // Add listeners for draw events to calculate measurements
+        map.on('draw.create', updateMeasurements);
+        map.on('draw.update', updateMeasurements);
 
-        // Send the measurements to the Streamlit Python code using window.parent.postMessage
-        window.parent.postMessage({{ type: "measurements", data: JSON.stringify(measurements) }}, "*");
-    }}
+    let landmarkCount = 0;
+    let landmarks = [];
+    let featureColors = {{}};
+    let featureNames = {{}};
 
+    // Handle drawn features (lines, shapes)
     map.on('draw.create', updateMeasurements);
     map.on('draw.update', updateMeasurements);
-    map.on('draw.delete', updateMeasurements);
+    map.on('draw.delete', deleteFeature);
+
+    function updateMeasurements(e) {{
+        const data = Draw.getAll();
+        let sidebarContent = "";
+        if (data.features.length > 0) {{
+            const features = data.features;
+            features.forEach(function (feature, index) {{
+                if (feature.geometry.type === 'LineString') {{
+                    const length = turf.length(feature);
+                    const startCoord = feature.geometry.coordinates[0];
+                    const endCoord = feature.geometry.coordinates[feature.geometry.coordinates.length - 1];
+
+                    // Identify landmarks for the start and end points of the line
+                    let startLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, startCoord) < 0.01);
+                    let endLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, endCoord) < 0.01);
+
+                    if (!featureNames[feature.id]) {{
+                        const name = prompt("Enter a name for this line:");
+                        featureNames[feature.id] = name || "Line " + (index + 1);
+                    }}
+
+                    if (!featureColors[feature.id]) {{
+                        const lineColor = prompt("Enter a color for this line (e.g., red, purple, cyan, pink):");
+                        featureColors[feature.id] = lineColor || 'blue';
+                    }}
+
+                    // Update the feature's source when it's moved to ensure the color moves with it
+                    map.getSource('line-' + feature.id)?.setData(feature);
+
+                    map.addLayer({{
+                        id: 'line-' + feature.id,
+                        type: 'line',
+                        source: {{
+                            type: 'geojson',
+                            data: feature
+                        }},
+                        layout: {{}},
+                        paint: {{
+                            'line-color': featureColors[feature.id],
+                            'line-width': 4
+                        }}
+                    }});
+
+                    let distanceUnit = length >= 1 ? 'km' : 'm';
+                    let distanceValue = length >= 1 ? length.toFixed(2) : (length * 1000).toFixed(2);
+                    
+
+                    sidebarContent += '<p>Line ' + featureNames[feature.id] + ' belongs to ' + (startLandmark?.properties.name || 'Unknown') + ' - ' + (endLandmark?.properties.name || 'Unknown') + ': ' + distanceValue + ' ' + distanceUnit + '</p>';
+                }} else if (feature.geometry.type === 'Polygon') {{
+                    if (!feature.properties.name) {{
+                        if (!featureNames[feature.id]) {{
+                            const name = prompt("Enter a name for this polygon:");
+                            feature.properties.name = name || "Polygon " + (index + 1);
+                            featureNames[feature.id] = feature.properties.name;
+                        }} else {{
+                            feature.properties.name = featureNames[feature.id];
+                        }}
+                    }}
+
+                    if (!featureColors[feature.id]) {{
+                        const polygonColor = prompt("Enter a color for this polygon (e.g., green, yellow):");
+                        featureColors[feature.id] = polygonColor || 'yellow';
+                    }}
+
+                    // Update the feature's source when it's moved to ensure the color moves with it
+                    map.getSource('polygon-' + feature.id)?.setData(feature);
+
+                    map.addLayer({{
+                        id: 'polygon-' + feature.id,
+                        type: 'fill',
+                        source: {{
+                            type: 'geojson',
+                            data: feature
+                        }},
+                        paint: {{
+                            'fill-color': featureColors[feature.id],
+                            'fill-opacity': 0.6
+                        }}
+                    }});
+
+                    const bbox = turf.bbox(feature);
+                    const width = turf.distance([bbox[0], bbox[1]], [bbox[2], bbox[1]]);
+                    const height = turf.distance([bbox[0], bbox[1]], [bbox[0], bbox[3]]);
+
+                    let widthUnit = width >= 1 ? 'km' : 'm';
+                    let heightUnit = height >= 1 ? 'km' : 'm';
+                    let widthValue = width >= 1 ? width.toFixed(2) : (width * 1000).toFixed(2);
+                    let heightValue = height >= 1 ? height.toFixed(2) : (height * 1000).toFixed(2);
+
+                    sidebarContent += '<p>Polygon ' + feature.properties.name + ': Width = ' + widthValue + ' ' + widthUnit + ', Height = ' + heightValue + ' ' + heightUnit + '</p>';
+                }} else if (feature.geometry.type === 'Point') {{
+                    // Handle landmarks (points)
+                    if (!feature.properties.name) {{
+                        if (!featureNames[feature.id]) {{
+                            const name = prompt("Enter a name for this landmark:");
+                            feature.properties.name = name || "Landmark " + (landmarkCount + 1);
+                            featureNames[feature.id] = feature.properties.name;
+                            landmarks.push(feature);
+                            landmarkCount++;
+                        }} else {{
+                            feature.properties.name = featureNames[feature.id];
+                        }}
+                    }}
+
+                    if (!featureColors[feature.id]) {{
+                        const markerColor = prompt("Enter a color for this landmark (e.g., black, white):");
+                        featureColors[feature.id] = markerColor || 'black';
+                    }}
+
+                    map.getSource('marker-' + feature.id)?.setData(feature);
+
+                    map.addLayer({{
+                        id: 'marker-' + feature.id,
+                        type: 'circle',
+                        source: {{
+                            type: 'geojson',
+                            data: feature
+                        }},
+                        paint: {{
+                            'circle-radius': 8,
+                            'circle-color': featureColors[feature.id]
+                        }}
+                    }});
+
+                    sidebarContent += '<p>Landmark ' + feature.properties.name + '</p>';
+                }}
+            }});
+        }} else {{
+            sidebarContent = "<p>No features drawn yet.</p>";
+        }}
+        document.getElementById('measurements').innerHTML = sidebarContent;
+    }}
 
     function toggleSidebar() {{
         var sidebar = document.getElementById('sidebar');
@@ -174,48 +327,71 @@ mapbox_map_html = f"""
             document.getElementById('toggleSidebar').innerText = "Open Sidebar";
         }}
     }}
+
+    // Function to handle deletion of features
+    function deleteFeature(e) {{
+        const features = e.features;
+        features.forEach(function (feature) {{
+            delete featureColors[feature.id];
+            delete featureNames[feature.id];
+
+            map.removeLayer('line-' + feature.id);
+            map.removeLayer('polygon-' + feature.id);
+            map.removeLayer('marker-' + feature.id);
+        }});
+        updateMeasurements();
+    }}
 </script>
 </body>
 </html>
 """
 
-# Use components.html to render the map with embedded JavaScript
-mapbox_component = components.html(
+
+# Render the Mapbox map and receive data from JavaScript
+distance_data = components.html(
     mapbox_map_html,
     height=600,
     scrolling=True
 )
 
-# Handle JavaScript to Python data exchange
-measurement_data = st.session_state.get('measurements', [])
+# Handle received distance data
+if distance_data:
+    handle_distance_update(distance_data)
 
-if 'measurements' not in st.session_state:
-    st.session_state['measurements'] = []
-
-# Placeholder to receive JavaScript messages
-message = st.experimental_get_query_params().get('measurements')
-if message:
-    st.session_state['measurements'] = json.loads(message[0])
-
-# Display received measurements in the Streamlit sidebar (if any)
-if st.session_state['measurements']:
-    st.sidebar.write("Received Measurements:")
-    st.sidebar.json(st.session_state['measurements'])
-
-    # Example usage of the distance in your pipe calculations
-    distance_value_km = st.session_state['measurements'][0]['length']
-    distance_value_m = distance_value_km * 1000
-
-    # Pipe calculations can be done here using the `distance_value_m`.
-    st.write(f"Calculated Pipe Length (in meters): {distance_value_m}")
-
-    # Insert the rest of your pipe cost calculation code here, using distance_value_m
+# Use the distance data for further calculations
+if 'line_distances' in st.session_state:
+    total_distance = sum(st.session_state['line_distances'])
+    st.write(f"Total Pipe Length: {total_distance:.2f} km")
 
 
+    # Calculate the total cost of pipes
+    if st.button("Calculate Total Pipe Cost"):
+        try:
+            cost_per_km = 100  # Example cost per km; you can adjust as per the pipe data
+            total_cost = total_distance * cost_per_km
+            st.write(f"Total Cost: €{total_cost:.2f}")
+        except Exception as e:
+            st.error(f"An error occurred during cost calculation: {e}")
+# Address search using Mapbox Geocoding API
+if address_search:
+    geocode_url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{address_search}.json?access_token={mapbox_access_token}"
+    # Request the geocoded location
+    try:
+        response = requests.get(geocode_url)
+        if response.status_code == 200:
+            geo_data = response.json()
+            if len(geo_data['features']) > 0:
+                coordinates = geo_data['features'][0]['center']
+                latitude, longitude = coordinates[1], coordinates[0]
+                st.sidebar.success(f"Address found: {geo_data['features'][0]['place_name']}")
+                st.sidebar.write(f"Coordinates: Latitude {latitude}, Longitude {longitude}")
+            else:
+                st.sidebar.error("Address not found.")
+        else:
+            st.sidebar.error("Error connecting to the Mapbox API.")
+    except Exception as e:
+        st.sidebar.error(f"Error: {e}")
 
-
-
-      
 # Pipe data dictionaries
 B1001_data_dict = {
     'Nominal diameter (inches)': ['0.5', '0.75', '1', '1.5', '2', '3', '4', '5', '6', '8', '10', '12', '14', '16', '20'],
