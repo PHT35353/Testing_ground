@@ -4,6 +4,7 @@ import pandas as pd
 import math
 import requests
 import json
+import streamlit.components.v1 as components
 
 
 # Set up a title for the app
@@ -324,7 +325,6 @@ mapbox_map_html = f"""
 </body>
 </html>
 """
-
 components.html(mapbox_map_html, height=600)
 
 # Use the JavaScript callback
