@@ -169,6 +169,7 @@ mapbox_map_html = f"""
 
             // Send the distances to Streamlit using window.parent.postMessage
             window.parent.postMessage({ type: 'distanceUpdate', distances: totalDistances }, '*');
+
         }}
 
         // Add listeners for draw events to calculate measurements
@@ -357,6 +358,24 @@ distance_data = components.html(
 # Handle received distance data
 if distance_data:
     handle_distance_update(distance_data)
+
+
+# Example function to use distance and calculate pipe material and cost
+if 'line_distances' in st.session_state:
+    total_distance = sum(st.session_state['line_distances']) * 1000  # Convert to meters
+    st.write(f"Total Pipe Length: {total_distance:.2f} meters")
+
+    # Get user inputs for pressure, temperature, and medium
+    pressure, temperature, medium = get_user_inputs1()
+
+    if st.button("Find Suitable Pipes and Calculate Cost"):
+        # Select appropriate pipe material based on inputs
+        pipe_material = choose_pipe_material(pressure, temperature, medium)
+        st.write(f"Selected Pipe Material: {pipe_material}")
+
+        # Find and calculate the cost of the pipes
+        Pipe_finder(pipe_material, pressure, total_distance)
+
 
 # Use the distance data for further calculations
 if 'line_distances' in st.session_state:
