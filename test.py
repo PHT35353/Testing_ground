@@ -566,7 +566,11 @@ def get_user_inputs():
     pressure = st.number_input("Enter the pressure (bar):", min_value=0.0, format="%.2f")
     temperature = st.number_input("Enter the temperature (°C):", min_value=0.0, format="%.2f")
     medium = st.text_input("Enter the medium:")
-    
+     # Fetch the distance value from session state, or default to 0 if not available
+    if 'line_distances' in st.session_state:
+        distance = sum(st.session_state['line_distances'])  # Sum of all line distances in meters
+    else:
+        distance = 0.0
     
     
     return pressure, temperature, medium, distance
