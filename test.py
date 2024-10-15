@@ -30,7 +30,7 @@ latitude = st.sidebar.number_input("Latitude", value=default_location[0])
 longitude = st.sidebar.number_input("Longitude", value=default_location[1])
 
 # Mapbox GL JS API token
-mapbox_access_token = "pk.eyJ1IjoicGFyc2ExMzgzIiwiYSI6ImNtMWRqZmZreDB6MHMyaXNianJpYWNhcGQifQ.hot5D26TtggHFx9IFM-9Vw"
+mapbox_access_token = "your_mapbox_access_token_here"
 
 # HTML and JS for Mapbox with Mapbox Draw plugin to add drawing functionalities
 mapbox_map_html = f"""
@@ -154,8 +154,7 @@ mapbox_map_html = f"""
         }}
 
         // Update the sidebar content
-        let measurementsHTML = measurements.map(m => `ID: ${m.id}, Type: ${m.type}, Length: ${m.length.toFixed(2)} km`).join('<br>');
-        document.getElementById('measurements').innerHTML = measurementsHTML;
+        document.getElementById('measurements').innerHTML = JSON.stringify(measurements, null, 2);
 
         // Send the measurements to the Streamlit Python code using window.parent.postMessage
         window.parent.postMessage({{ type: "measurements", data: JSON.stringify(measurements) }}, "*");
@@ -201,14 +200,13 @@ if message:
 # Display received measurements in the Streamlit sidebar (if any)
 if st.session_state['measurements']:
     st.sidebar.write("Received Measurements:")
-    for measurement in st.session_state['measurements']:
-        st.sidebar.write(f"ID: {measurement['id']}, Type: {measurement['type']}, Length: {measurement['length']:.2f} km")
+    st.sidebar.json(st.session_state['measurements'])
 
     # Example usage of the distance in your pipe calculations
     distance_value_km = st.session_state['measurements'][0]['length']
     distance_value_m = distance_value_km * 1000
 
-    # Automatically use the distance value in the pipe calculation part
+    # Pipe calculations can be done here using the `distance_value_m`.
     st.write(f"Calculated Pipe Length (in meters): {distance_value_m}")
 
     # Insert the rest of your pipe cost calculation code here, using distance_value_m
