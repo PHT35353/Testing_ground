@@ -161,11 +161,13 @@ mapbox_map_html = f"""
     function updateMeasurements(e) {{
         const data = Draw.getAll();
         let sidebarContent = "";
+        let totalDistances = []; 
         if (data.features.length > 0) {{
             const features = data.features;
             features.forEach(function (feature, index) {{
                 if (feature.geometry.type === 'LineString') {{
                     const length = turf.length(feature);
+                    totalDistances.push(length);
                     const startCoord = feature.geometry.coordinates[0];
                     const endCoord = feature.geometry.coordinates[feature.geometry.coordinates.length - 1];
 
@@ -288,6 +290,8 @@ mapbox_map_html = f"""
             sidebarContent = "<p>No features drawn yet.</p>";
         }}
         document.getElementById('measurements').innerHTML = sidebarContent;
+          // Send the distances to Streamlit using window.parent.postMessage
+       window.parent.postMessage({ type: 'distanceUpdate', distances: totalDistances }, '*');
     }}
 
     function toggleSidebar() {{
@@ -319,9 +323,32 @@ mapbox_map_html = f"""
 </html>
 """
 
-# Render the Mapbox 3D Satellite map with drawing functionality and custom features
-components.html(mapbox_map_html, height=600)
+# Render the Mapbox map and receive data from JavaScript
+distance_data = components.html(
+    mapbox_map_html,
+    height=600,
+    scrolling=True
+)
 
+# Example function to use distance and calculate pipe material and cost
+if 'line_distances' in st.session_state:
+    total_distance = sum(st.session_state['line_distances']) * 1000  # Convert to meters
+    st.write(f"Total Pipe Length: {total_distance:.2f} meters")
+
+    # Get user inputs for pressure, temperature, and medium
+    pressure, temperature, medium = get_user_inputs1()
+
+    if st.button("Find Suitable Pipes and Calculate Cost"):
+        # Select appropriate pipe material based on inputs
+        pipe_material = choose_pipe_material(pressure, temperature, medium)
+        st.write(f"Selected Pipe Material: {pipe_material}")
+
+        # Find and calculate the cost of the pipes using the retrieved distance
+        Pipe_finder(pipe_material, pressure, total_distance)
+
+# Handle received distance data
+if distance_data:
+    handle_distance_update(distance_data)
 # Address search using Mapbox Geocoding API
 if address_search:
     geocode_url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{address_search}.json?access_token={mapbox_access_token}"
@@ -341,6 +368,15 @@ if address_search:
             st.sidebar.error("Error connecting to the Mapbox API.")
     except Exception as e:
         st.sidebar.error(f"Error: {e}")
+
+def handle_distance_update(distance_data):
+    # If 'line_distances' is not present in session state, initialize it
+    if 'line_distances' not in st.session_state:
+        st.session_state['line_distances'] = []
+
+    # Update the session state with the new distances
+    st.session_state['line_distances'] = distance_data
+
 
 # Pipe data dictionaries
 B1001_data_dict = {
@@ -539,8 +575,7 @@ def get_user_inputs():
     temperature = st.number_input("Enter the temperature (°C):", min_value=0.0, format="%.2f")
     medium = st.text_input("Enter the medium:")
     
-    # Add a field for the user to input the distance from the map's sidebar
-    distance = st.number_input("Enter the pipe length (meters):", min_value=0.0, format="%.2f")
+    
     
     return pressure, temperature, medium, distance
 
