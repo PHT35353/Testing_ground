@@ -291,7 +291,7 @@ mapbox_map_html = f"""
         }}
         document.getElementById('measurements').innerHTML = sidebarContent;
           // Send the distances to Streamlit using window.parent.postMessage
-       window.parent.postMessage({ type: 'distanceUpdate', distances: totalDistances }, '*');
+       window.parent.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
     }}
 
     function toggleSidebar() {{
