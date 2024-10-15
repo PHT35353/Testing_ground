@@ -40,11 +40,6 @@ if st.sidebar.button("Search Location"):
 # Mapbox GL JS API token
 mapbox_access_token = "pk.eyJ1IjoicGFyc2ExMzgzIiwiYSI6ImNtMWRqZmZreDB6MHMyaXNianJpYWNhcGQifQ.hot5D26TtggHFx9IFM-9Vw"
 
-# Function to process distance data received from JavaScript
-def handle_distance_update(distance_data):
-    if 'line_distances' not in st.session_state:
-        st.session_state['line_distances'] = []
-    st.session_state['line_distances'] = distance_data
 # HTML and JS for Mapbox with Mapbox Draw plugin to add drawing functionalities
 mapbox_map_html = f"""
 <!DOCTYPE html>
@@ -152,29 +147,6 @@ mapbox_map_html = f"""
     }});
 
     map.addControl(Draw);
-
-      // Function to handle drawn features and send distances back to Streamlit
-        function updateMeasurements(e) {{
-            const data = Draw.getAll();
-            let totalDistances = [];
-
-            if (data.features.length > 0) {{
-                data.features.forEach(function (feature) {{
-                    if (feature.geometry.type === 'LineString') {{
-                        const length = turf.length(feature);  // Get the length of the line
-                        totalDistances.push(length);
-                    }}
-                }});
-            }}
-
-            // Send the distances to Streamlit using window.parent.postMessage
-            window.parent.postMessage({ type: 'distanceUpdate', distances: totalDistances }, '*');
-
-        }}
-
-        // Add listeners for draw events to calculate measurements
-        map.on('draw.create', updateMeasurements);
-        map.on('draw.update', updateMeasurements);
 
     let landmarkCount = 0;
     let landmarks = [];
@@ -347,50 +319,9 @@ mapbox_map_html = f"""
 </html>
 """
 
+# Render the Mapbox 3D Satellite map with drawing functionality and custom features
+components.html(mapbox_map_html, height=600)
 
-# Render the Mapbox map and receive data from JavaScript
-distance_data = components.html(
-    mapbox_map_html,
-    height=600,
-    scrolling=True
-)
-
-# Handle received distance data
-if distance_data:
-    handle_distance_update(distance_data)
-
-
-# Example function to use distance and calculate pipe material and cost
-if 'line_distances' in st.session_state:
-    total_distance = sum(st.session_state['line_distances']) * 1000  # Convert to meters
-    st.write(f"Total Pipe Length: {total_distance:.2f} meters")
-
-    # Get user inputs for pressure, temperature, and medium
-    pressure, temperature, medium = get_user_inputs1()
-
-    if st.button("Find Suitable Pipes and Calculate Cost"):
-        # Select appropriate pipe material based on inputs
-        pipe_material = choose_pipe_material(pressure, temperature, medium)
-        st.write(f"Selected Pipe Material: {pipe_material}")
-
-        # Find and calculate the cost of the pipes
-        Pipe_finder(pipe_material, pressure, total_distance)
-
-
-# Use the distance data for further calculations
-if 'line_distances' in st.session_state:
-    total_distance = sum(st.session_state['line_distances'])
-    st.write(f"Total Pipe Length: {total_distance:.2f} km")
-
-
-    # Calculate the total cost of pipes
-    if st.button("Calculate Total Pipe Cost"):
-        try:
-            cost_per_km = 100  # Example cost per km; you can adjust as per the pipe data
-            total_cost = total_distance * cost_per_km
-            st.write(f"Total Cost: €{total_cost:.2f}")
-        except Exception as e:
-            st.error(f"An error occurred during cost calculation: {e}")
 # Address search using Mapbox Geocoding API
 if address_search:
     geocode_url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{address_search}.json?access_token={mapbox_access_token}"
