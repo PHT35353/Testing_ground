@@ -3,6 +3,7 @@ import pandas as pd
 import math
 import streamlit.components.v1 as components
 import requests
+import json
 
 # Set up a title for the app
 st.title("Piping tool")
@@ -291,7 +292,7 @@ mapbox_map_html = f"""
         }}
         document.getElementById('measurements').innerHTML = sidebarContent;
           // Send the distances to Streamlit using window.parent.postMessage
-       window.parent.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
+       window.parent.postMessage({ type: 'distanceUpdate', distances: totalDistances }, '*');
     }}
 
     function toggleSidebar() {{
@@ -329,6 +330,15 @@ distance_data = components.html(
     height=600,
     scrolling=True
 )
+
+if distance_data:
+    try:
+        # Assuming distance_data is received as a JSON string
+        data = json.loads(distance_data)
+        if data.get('type') == 'distanceUpdate':
+            handle_distance_update(data['distances'])
+    except Exception as e:
+        st.error(f"Error processing distance data: {e}")
 
 # Example function to use distance and calculate pipe material and cost
 if 'line_distances' in st.session_state:
