@@ -356,6 +356,15 @@ if 'line_distances' in st.session_state:
         # Find and calculate the cost of the pipes using the retrieved distance
         Pipe_finder(pipe_material, pressure, total_distance)
 
+
+def handle_distance_update(distance_data):
+    # If 'line_distances' is not present in session state, initialize it
+    if 'line_distances' not in st.session_state:
+        st.session_state['line_distances'] = []
+
+    # Update the session state with the new distances
+    st.session_state['line_distances'] = distance_data
+
 # Handle received distance data
 if distance_data:
     handle_distance_update(distance_data)
@@ -379,13 +388,6 @@ if address_search:
     except Exception as e:
         st.sidebar.error(f"Error: {e}")
 
-def handle_distance_update(distance_data):
-    # If 'line_distances' is not present in session state, initialize it
-    if 'line_distances' not in st.session_state:
-        st.session_state['line_distances'] = []
-
-    # Update the session state with the new distances
-    st.session_state['line_distances'] = distance_data
 
 
 # Pipe data dictionaries
