@@ -169,8 +169,9 @@ map.on('draw.update', (e) => {{
     updateSidebarMeasurements(e);
 }});
 map.on('draw.delete', (e) => {{
-    deleteFeature;
-}});
+   updateMeasurements();
+   updateSidebarMeasurements(e);
+}});  
 
 
 
@@ -342,19 +343,39 @@ map.on('draw.delete', (e) => {{
         }}
     }}
 
-    // Function to handle deletion of features
-    function deleteFeature(e) {{
-        const features = e.features;
-        features.forEach(function (feature) {{
-            delete featureColors[feature.id];
-            delete featureNames[feature.id];
+  // Function to handle deletion of features
+function deleteFeature(e) {{
+    const features = e.features;
+    features.forEach(function (feature) {{
+        const featureId = feature.id;
 
-            map.removeLayer('line-' + feature.id);
-            map.removeLayer('polygon-' + feature.id);
-            map.removeLayer('marker-' + feature.id);
-        }});
-        updateMeasurements();
-    }}
+        // Remove the feature's associated color and name from dictionaries
+        delete featureColors[featureId];
+        delete featureNames[featureId];
+
+        // Remove the layer associated with the feature, if it exists
+        if (map.getLayer('line-' + featureId)) {{
+            map.removeLayer('line-' + featureId);
+            map.removeSource('line-' + featureId);
+        }}
+
+        if (map.getLayer('polygon-' + featureId)) {{
+            map.removeLayer('polygon-' + featureId);
+            map.removeSource('polygon-' + featureId);
+        }}
+
+        if (map.getLayer('marker-' + featureId)) {{
+            map.removeLayer('marker-' + featureId);
+            map.removeSource('marker-' + featureId);
+        }}
+
+        console.log(`Feature ${featureId} and its color have been removed.`);
+    }});
+
+    // Update measurements after deletion
+    updateMeasurements();
+}}
+
 </script>
 </body>
 </html>
