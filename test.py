@@ -328,12 +328,18 @@ mapbox_map_html = f"""
 components.html(mapbox_map_html, height=600)
 
 # Use JavaScript callback to get the distance value
-distanceValue = stjs("await new Promise((resolve) => { window.addEventListener('message', (event) => { if (event.data.type === 'distanceUpdate') { resolve(event.data.distances); }}); });")
+distanceValue = stjs(
+    "await new Promise((resolve) => { window.addEventListener('message', (event) => { if (event.data.type === 'distanceUpdate') { resolve(event.data.distances); }}); });"
+)
 
 if distanceValue:
     try:
-        # Assuming distance_data is received as JSON
-        handle_distance_update(distanceValue)
+        # Update session state with the new distances
+        if 'line_distances' not in st.session_state:
+            st.session_state['line_distances'] = []
+
+        st.session_state['line_distances'] = distanceValue
+
     except Exception as e:
         st.error(f"Error processing distance data: {e}")
 
@@ -342,8 +348,6 @@ def handle_distance_update(distanceValue):
     if 'line_distances' not in st.session_state:
         st.session_state['line_distances'] = []
 
-    # Update the session state with the new distances
-    st.session_state['line_distances'] = distanceValue
 
 # Handle received distance data
 if distanceValue:
