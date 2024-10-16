@@ -390,10 +390,16 @@ components.html(mapbox_map_html, height=600)
 
 if st.sidebar.button("Get Line Measurements"):
     # JavaScript script to call the getDistanceData function
+   # Function to fetch the distance data from JavaScript using retries
+def get_distance_data_with_retry(max_attempts=5, delay=1):
     distance_value_script = """
-    (() => {
-        return getDistanceData();
-    })();
+    (() => {{
+        if (window.distanceData && window.distanceData.length > 0) {{
+            return window.distanceData;  // Return distance data if available
+        }} else {{
+            return null;  // If distance data isn't available yet, return null
+        }}
+    }})();
     """
 
     # Execute JavaScript and retrieve the distance data
@@ -407,6 +413,16 @@ if st.sidebar.button("Get Line Measurements"):
             st.sidebar.write(f"Line {i + 1}: {distance:.2f} km")
     else:
         st.sidebar.warning("No distances received. Please draw lines on the map and try again.")
+
+distanceValue = None
+    for attempt in range(max_attempts):
+        distanceValue = stjs(distance_value_script, key=f"distance_fetch_key_{attempt}")
+        if distanceValue and isinstance(distanceValue, list) and len(distanceValue) > 0:
+            return distanceValue
+        else:
+            time.sleep(delay)  # Wait for a short time before trying again
+
+    return None
 
 
 # Button to get distance data after drawing lines
