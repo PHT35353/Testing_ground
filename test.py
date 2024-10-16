@@ -302,11 +302,13 @@ mapbox_map_html = f"""
             sidebarContent = "<p>No features drawn yet.</p>";
         }}
         document.getElementById('measurements').innerHTML = sidebarContent;
-          // Send the distances to Streamlit using window.parent.postMessage
-          console.log("Sending totalDistances to parent window: ", totalDistances);
-          window.parent.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
-
-    }}
+        // Send the distances to Streamlit using window.parent.postMessage
+        console.log("Calculated totalDistances:", totalDistances);
+        if (totalDistances.length > 0) {{
+           window.parent.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
+        }} else {{
+        console.log("No distances to send.");
+     }}
 
     function toggleSidebar() {{
         var sidebar = document.getElementById('sidebar');
@@ -340,7 +342,7 @@ components.html(mapbox_map_html, height=600)
 
 # Use JavaScript callback to get the distance value
 distance_value_script = """
-await new Promise((resolve) => {
+await new Promise((resolve, reject) => {
     // Ensure that the event listener is registered globally
     if (!window.distanceListenerAdded) {
         window.addEventListener('message', (event) => {
@@ -350,9 +352,18 @@ await new Promise((resolve) => {
             }
         });
         window.distanceListenerAdded = true;  // Prevent adding multiple listeners
+        console.log("Distance event listener added.");
+    } else {
+        console.log("Event listener already exists.");
     }
+
+    // Add a fallback to reject if no data is received after a timeout
+    setTimeout(() => {
+        reject("Timeout: No distance data received from JavaScript.");
+    }, 10000);  // 10 seconds timeout
 });
 """
+
 
 
 distanceValue = stjs(distance_value_script)
