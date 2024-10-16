@@ -294,15 +294,16 @@ mapbox_map_html = f"""
             sidebarContent = "<p>No features drawn yet.</p>";
         }}
         document.getElementById('measurements').innerHTML = sidebarContent;
-         
-         // Send the distances to Streamlit using window.parent.postMessage
-       console.log("Calculated totalDistances:", totalDistances);
-       if (totalDistances.length > 0) {{
-           window.parent.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
-       }} else {{
+
+        // Send the distances to Streamlit using window.parent.postMessage
+        console.log("Calculated totalDistances:", totalDistances);
+        if (totalDistances.length > 0) {{
+           alert("Sending distances: " + totalDistances);  // For testing purposes
+           window.parent.postMessage({{ type: 'distanceUpdate', distances: totalDistances }, '*');
+        }} else {{
            console.log("No distances to send.");
-       }}
-   }}
+        }}          
+    }}
     
     function toggleSidebar() {{
         var sidebar = document.getElementById('sidebar');
@@ -335,35 +336,49 @@ mapbox_map_html = f"""
 components.html(mapbox_map_html, height=600)
 
 distance_value_script = """
-(() => {
+(() => {{
     // Ensure that the event listener is registered globally
-    if (!window.distanceListenerAdded) {
-        window.addEventListener('message', (event) => {
-            if (event.data.type === 'distanceUpdate') {
+    if (!window.distanceListenerAdded) {{
+        window.addEventListener('message', (event) => {{
+            if (event.data.type === 'distanceUpdate') {{
                 console.log("Received distances from the map: ", event.data.distances);
                 window.distanceData = event.data.distances;  // Store the received data globally
-            }
-        });
+            }}
+        }});
         window.distanceListenerAdded = true;  // Prevent adding multiple listeners
         console.log("Distance event listener added.");
-    } else {
+    }} else {{
         console.log("Event listener already exists.");
-    }
+    }}
 
     // Return the stored distance data if available
     return window.distanceData || [];
-})();
+    return new Promise((resolve) => {{
+        setTimeout(() => {{
+            resolve(window.distanceData && window.distanceData.length > 0 ? window.distanceData : null);
+        }}, 500);  // 500ms delay to ensure data has been updated
+    }});
+}})();
+
 """
-
-
-
-
 distanceValue = stjs(distance_value_script)
 
-if distanceValue:
-    st.write(f"Distance values received from JavaScript: {distanceValue}")
-else:
+if distanceValue is None:
     st.warning("No distances received yet. There may be an issue with JavaScript messaging.")
+else:
+    try:
+        # Update session state with the new distances
+        if 'line_distances' not in st.session_state:
+            st.session_state['line_distances'] = []
+
+        st.session_state['line_distances'] = distanceValue
+
+        # Confirm that the distance was correctly received
+        st.write(f"Updated Distance in Session State: {st.session_state['line_distances']}")
+
+    except Exception as e:
+        st.error(f"Error processing distance data: {e}")
+
 
 
 if distanceValue:
