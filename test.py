@@ -388,13 +388,13 @@ components.html(mapbox_map_html, height=600)
 # Function to fetch the distance data from JavaScript using retries
 def get_distance_data_with_retry(max_attempts=5, delay=1):
     distance_value_script = """
-    (() => {
-        if (window.distanceData && window.distanceData.length > 0) {
+    (() => {{
+        if (window.distanceData && window.distanceData.length > 0) {{
             return window.distanceData;  // Return distance data if available
-        } else {
+        }} else {{
             return null;  // If distance data isn't available yet, return null
-        }
-    })();
+        }}
+    }})();
     """
 
     distanceValue = None
