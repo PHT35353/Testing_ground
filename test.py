@@ -416,7 +416,7 @@ def get_distance_value():
             break
         time.sleep(1)  # Sleep for 1 second before retrying
 
-    if distanceValue is None or len(distanceValue) == 0:
+    if distanceValue is None or distanceValue == 0:
         return None
     return sum([float(dist) for dist in distanceValue])  # Return the sum of distances
 
