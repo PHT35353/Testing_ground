@@ -11,18 +11,6 @@ import time
 # Set up a title for the app
 st.title("Piping tool")
 
-# Define the JavaScript script to fetch the distance data
-distance_value_script = """
-(() => {
-    // Returning distanceData if it is available, otherwise return null
-    if (!window.distanceData) {
-        console.log("No distanceData available to return.");
-        return null;  // If distance data isn't available yet, return null
-    }
-    console.log("Returning distanceData to Python:", window.distanceData);
-    return window.distanceData;
-})();
-"""
 
 # Add instructions and explain color options
 st.markdown("""
@@ -172,63 +160,39 @@ mapbox_map_html = f"""
     let featureNames = {{}};
 
    
-map.on('draw.create', (e) => setTimeout(() => {{
-    updateMeasurements(); // Updates the distance calculations
-    updateSidebarMeasurements(e); // Updates the sidebar with the details
-}}, 100));
-
-map.on('draw.update', (e) => setTimeout(() => {{
-    updateMeasurements(); // Updates the distance calculations
-    updateSidebarMeasurements(e); // Updates the sidebar with the details
-}}, 100));
-
-map.on('draw.delete', (e) => setTimeout(() => {{
-    deleteFeature(e);
-    updateSidebarMeasurements(e);
-}}, 100));
-
-let distanceData = [];  // This will store distances globally
-
-// Ensure the distance listener is added only once
-if (!distanceListenerAdded) {{
-    window.addEventListener('message', (event) => {{
-        if (event.data.type === 'distanceUpdate') {{
-            console.log("Received distances from the map:", event.data.distances);
-            distanceData = event.data.distances;  // Store the received data globally
-        }}
-    }});
-    distanceListenerAdded = true;  // Prevent adding multiple listeners
-    console.log("Distance event listener added.");
-}} else {{
-    console.log("Event listener already exists.");
-}}
 
 
- // Define the distanceData variable globally, to be accessed by Python
-    window.distanceData = [];
-
+ // Function to update the distance measurements
     function updateMeasurements() {{
         const data = Draw.getAll();
-        window.distanceData = []; // Clear the previous distance data
+        let totalDistances = [];
 
         if (data.features.length > 0) {{
-            const features = data.features;
-            features.forEach(function (feature) {{
+            data.features.forEach((feature) => {{
                 if (feature.geometry.type === 'LineString') {{
-                    const length = turf.length(feature);
-                    window.distanceData.push(length);
+                    const length = turf.length(feature, {{ units: 'kilometers' }});
+                    totalDistances.push(length);
                 }}
             }});
         }}
 
-        console.log("Updated distanceData:", window.distanceData);
+        // Update the global distance data
+        window.distanceData = totalDistances;
+        console.log("Distance data updated:", window.distanceData);
+        console.log("Fetching distance data:", window.distanceData);
+
     }}
 
-    // Update measurements whenever something is drawn, updated, or deleted
-    map.on('draw.create', () => setTimeout(updateMeasurements, 100));
-    map.on('draw.update', () => setTimeout(updateMeasurements, 100));
-    map.on('draw.delete', () => setTimeout(updateMeasurements, 100));
-
+    // Attach the updateMeasurements function to Mapbox draw events
+    map.on('draw.create', () => {{
+        updateMeasurements();
+    }});
+    map.on('draw.update', () => {{
+        updateMeasurements();
+    }});
+    map.on('draw.delete', () => {{
+        updateMeasurements();
+    }});
 
      
     function updateSidebarMeasurements(e) {{
@@ -258,6 +222,17 @@ if (!distanceListenerAdded) {{
                         featureColors[feature.id] = lineColor || 'blue';
                     }}
 
+                       // Attach the updateMeasurements function to Mapbox draw events
+                       map.on('draw.create', () => {{
+                           updateMeasurements();
+                       }});
+                       map.on('draw.update', () => {{
+                           updateMeasurements();
+                       }});
+                       map.on('draw.delete', () => {{
+                           updateMeasurements();
+                       }});
+                    
                     // Update the feature's source when it's moved to ensure the color moves with it
                     map.getSource('line-' + feature.id)?.setData(feature);
 
@@ -397,20 +372,34 @@ components.html(mapbox_map_html, height=600)
 
 # Button to get distance data after drawing lines
 if st.button("Get Distance Data from Map"):
+    # Add a delay before fetching the distance data to ensure JavaScript finishes updating data
+    time.sleep(1)  # Wait for 1 second
+
+    # Define the JavaScript script to fetch the distance data
+    distance_value_script = """
+    (() => {
+        if (window.distanceData && window.distanceData.length > 0) {
+            return window.distanceData;  // Return distance data if available
+        } else {
+            return null;  // If distance data isn't available yet, return null
+        }
+    })();
+    """
+    
     # Fetch distance data from JavaScript using stjs
     distanceValue = stjs(distance_value_script, key="distance_fetch_key")
-    
+
     # Check if a valid distance value is received
     if distanceValue and isinstance(distanceValue, list) and len(distanceValue) > 0:
         # Update the session state with the new distances
         st.session_state['line_distances'] = distanceValue
-
-        # Confirm that the distance was correctly received
         st.write(f"Updated Distance in Session State: {st.session_state['line_distances']}")
     else:
         st.warning("No distances received. Please draw lines on the map and try again.")
 
 
+
+# Function to get the distance value from session state
 def get_distance_value():
     # Fetch the distance value from session state, or set to 0 if not available
     if 'line_distances' in st.session_state and st.session_state['line_distances']:
@@ -420,7 +409,6 @@ def get_distance_value():
         return None  # Return None if distance is not available
 
 
-
 distanceValue = get_distance_value()
 
 if distanceValue is None:
@@ -428,6 +416,7 @@ if distanceValue is None:
 else:
     st.write(f"Retrieved Distance Value: {distanceValue} meters")
     # You can now proceed with the logic to calculate pipe material and cost
+
 
 
 
