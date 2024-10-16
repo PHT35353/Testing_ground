@@ -192,9 +192,12 @@ let lineMeasurements = {{}};
         // Update the global distance data
         // Introduce a delay before updating window.distanceData
     
-            window.distanceData = lineMeasurments;
-            console.log("Distance data updated:", window.distanceData);
-     }}
+    setTimeout(() => {{
+       window.distanceData = Object.values(lineMeasurements);
+       console.log("Distance data updated:", window.distanceData);
+    }}, 1000); // Add a 1-second delay before updating the global distance data
+
+}}
 
       
     function updateSidebarMeasurements(e) {{
@@ -228,6 +231,11 @@ let lineMeasurements = {{}};
                     // Update the feature's source when it's moved to ensure the color moves with it
                     map.getSource('line-' + feature.id)?.setData(feature);
 
+                     map.addSource('line-' + feature.id, {{
+                         type: 'geojson',
+                         data: feature
+                     }});
+
                     map.addLayer({{
                         id: 'line-' + feature.id,
                         type: 'line',
@@ -241,6 +249,10 @@ let lineMeasurements = {{}};
                             'line-width': 4
                         }}
                     }});
+                    }} else {{
+                        // If the layer already exists, just update its data
+                       map.getSource('line-' + feature.id).setData(feature);
+                    }}
 
                     let distanceUnit = length >= 1 ? 'km' : 'm';
                     let distanceValue = length >= 1 ? length.toFixed(2) : (length * 1000).toFixed(2);
