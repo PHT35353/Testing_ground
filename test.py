@@ -383,7 +383,7 @@ distance_value_script = """
 })();
 """
 
-distanceValue = stjs.st_javascript(distance_value_script)
+distanceValue = stjs(distance_value_script)
 
 
 if distanceValue is None or not isinstance(distanceValue, list) or len(distanceValue) == 0:
