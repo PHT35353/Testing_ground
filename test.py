@@ -191,10 +191,10 @@ let lineMeasurements = {{}};
 
         // Update the global distance data
         // Introduce a delay before updating window.distanceData
-        setTimeout(() => {{
+    
             window.distanceData = lineMeasurments;
             console.log("Distance data updated:", window.distanceData);
-        }}, 5000);  // Delay of 500 ms (can be adjusted)
+        
 
     }}
 
