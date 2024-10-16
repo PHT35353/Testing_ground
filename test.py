@@ -294,7 +294,8 @@ mapbox_map_html = f"""
         }}
         document.getElementById('measurements').innerHTML = sidebarContent;
           // Send the distances to Streamlit using window.parent.postMessage
-       window.parent.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
+      console.log("Sending distances to parent: ", totalDistances);
+      window.parent.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
     }}
 
     function toggleSidebar() {{
@@ -328,20 +329,32 @@ mapbox_map_html = f"""
 components.html(mapbox_map_html, height=600)
 
 # Use JavaScript callback to get the distance value
-distanceValue = stjs(
-    "await new Promise((resolve) => { window.addEventListener('message', (event) => { if (event.data.type === 'distanceUpdate') { resolve(event.data.distances); }}); });"
-)
+distance_value_script = """
+await new Promise((resolve) => {
+    window.addEventListener('message', (event) => {
+        if (event.data.type === 'distanceUpdate') {
+            console.log("Received distances: ", event.data.distances);
+            resolve(event.data.distances);
+        }
+    });
+});
+"""
 
-if distanceValue:
+distanceValue = stjs(distance_value_script)
+
+if distanceValue is not None:
     try:
         # Update session state with the new distances
         if 'line_distances' not in st.session_state:
             st.session_state['line_distances'] = []
 
-        st.session_state['line_distances'] = distanceValue
+        # Log distance value to check if it's correctly received
+        st.write(f"Received Distance: {distanceValue}")
 
+        st.session_state['line_distances'] = distanceValue
     except Exception as e:
         st.error(f"Error processing distance data: {e}")
+
 
 def handle_distance_update(distanceValue):
     # If 'line_distances' is not present in session state, initialize it
@@ -571,10 +584,11 @@ def get_user_inputs():
     temperature = st.number_input("Enter the temperature (°C):", min_value=0.0, format="%.2f")
     medium = st.text_input("Enter the medium:")
      # Fetch the distance value from session state, or default to 0 if not available
-    if 'line_distances' in st.session_state:
-        distanceValue = sum(st.session_state['line_distances'])  # Sum of all line distances in meters
-    else:
-        distanceValue = 0.0
+if 'line_distances' in st.session_state and st.session_state['line_distances']:
+    distanceValue = sum(st.session_state['line_distances'])  # Sum of all line distances in meters
+else:
+    st.warning("No line distances available yet. Please draw lines on the map.")
+    distanceValue = 0.0
     
     
     return pressure, temperature, medium, distanceValue
