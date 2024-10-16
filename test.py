@@ -156,10 +156,9 @@ mapbox_map_html = f"""
     let featureColors = {{}};
     let featureNames = {{}};
 
-   // Remove setTimeout calls around updateMeasurements and deleteFeature
-map.on('draw.create', updateMeasurements);
-map.on('draw.update', updateMeasurements);
-map.on('draw.delete', deleteFeature);
+    map.on('draw.create', (e) => setTimeout(() => updateMeasurements(e), 100));
+    map.on('draw.update', (e) => setTimeout(() => updateMeasurements(e), 100));
+    map.on('draw.delete', (e) => setTimeout(() => deleteFeature(e), 100));
 
   
 
@@ -301,7 +300,7 @@ map.on('draw.delete', deleteFeature);
            window.parent.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
         }} else {{
         console.log("No distances to send.");
-     }}
+        }}
 
     function toggleSidebar() {{
         var sidebar = document.getElementById('sidebar');
@@ -333,15 +332,14 @@ map.on('draw.delete', deleteFeature);
 """
 components.html(mapbox_map_html, height=600)
 
-# Use JavaScript callback to get the distance value
 distance_value_script = """
-await new Promise((resolve, reject) => {
+(() => {
     // Ensure that the event listener is registered globally
     if (!window.distanceListenerAdded) {
         window.addEventListener('message', (event) => {
             if (event.data.type === 'distanceUpdate') {
                 console.log("Received distances from the map: ", event.data.distances);
-                resolve(event.data.distances);
+                window.distanceData = event.data.distances;  // Store the received data globally
             }
         });
         window.distanceListenerAdded = true;  // Prevent adding multiple listeners
@@ -350,12 +348,11 @@ await new Promise((resolve, reject) => {
         console.log("Event listener already exists.");
     }
 
-    // Add a fallback to reject if no data is received after a timeout
-    setTimeout(() => {
-        reject("Timeout: No distance data received from JavaScript.");
-    }, 10000);  // 10 seconds timeout
-});
+    // Return the stored distance data if available
+    return window.distanceData || [];
+})();
 """
+
 
 
 
