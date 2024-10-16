@@ -194,9 +194,7 @@ let lineMeasurements = {{}};
     
             window.distanceData = lineMeasurments;
             console.log("Distance data updated:", window.distanceData);
-        
-
-    }}
+     }}
 
       
     function updateSidebarMeasurements(e) {{
