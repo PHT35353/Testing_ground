@@ -298,10 +298,11 @@ mapbox_map_html = f"""
         // Send the distances to Streamlit using window.parent.postMessage
         console.log("Calculated totalDistances:", totalDistances);
         if (totalDistances.length > 0) {{
-           alert("Sending distances: " + totalDistances);  // For testing purposes
-           window.parent.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
+            alert("Sending distances: " + totalDistances);  // Debugging pop-up
+            console.log("Sending distances to parent:", totalDistances);
+            window.parent.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
         }} else {{
-           console.log("No distances to send.");
+            console.log("No distances to send.");
         }}          
     }}
     
@@ -336,34 +337,44 @@ mapbox_map_html = f"""
 components.html(mapbox_map_html, height=600)
 
 distance_value_script = """
-(() => {{
-    // Ensure that the event listener is registered globally
-    if (!window.distanceListenerAdded) {{
-        window.addEventListener('message', (event) => {{
-            if (event.data.type === 'distanceUpdate') {{
+(() => {
+    // Initialize global distanceData variable if not already defined
+    if (!window.distanceData) {
+        window.distanceData = [];
+    }
+
+    // Ensure that the event listener is registered globally only once
+    if (!window.distanceListenerAdded) {
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'distanceUpdate') {
                 console.log("Received distances from the map: ", event.data.distances);
                 window.distanceData = event.data.distances;  // Store the received data globally
-            }}
-        }});
+            }
+        });
         window.distanceListenerAdded = true;  // Prevent adding multiple listeners
         console.log("Distance event listener added.");
-    }} else {{
+    } else {
         console.log("Event listener already exists.");
-    }}
+    }
 
-    // Return the stored distance data if available
-    return window.distanceData || [];
-    return new Promise((resolve) => {{
-        setTimeout(() => {{
-            resolve(window.distanceData && window.distanceData.length > 0 ? window.distanceData : null);
-        }}, 500);  // 500ms delay to ensure data has been updated
-    }});
-}})();
-
+    // Check if the distance data has been updated, and return it
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            if (window.distanceData && window.distanceData.length > 0) {
+                console.log("Returning distanceData to Python:", window.distanceData);
+                resolve(window.distanceData);
+            } else {
+                console.log("No distanceData available to return.");
+                resolve(null);
+            }
+        }, 500);  // 500ms delay to ensure data has been updated
+    });
+})();
 """
+
 distanceValue = stjs(distance_value_script)
 
-if distanceValue is None:
+if distanceValue is None or len(distanceValue) == 0:
     st.warning("No distances received yet. There may be an issue with JavaScript messaging.")
 else:
     try:
@@ -378,6 +389,7 @@ else:
 
     except Exception as e:
         st.error(f"Error processing distance data: {e}")
+
 
 
 
