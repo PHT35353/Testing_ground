@@ -172,7 +172,20 @@ mapbox_map_html = f"""
     let featureNames = {{}};
 
    
+map.on('draw.create', (e) => setTimeout(() => {{
+    updateMeasurements(); // Updates the distance calculations
+    updateSidebarMeasurements(e); // Updates the sidebar with the details
+}}, 100));
 
+map.on('draw.update', (e) => setTimeout(() => {{
+    updateMeasurements(); // Updates the distance calculations
+    updateSidebarMeasurements(e); // Updates the sidebar with the details
+}}, 100));
+
+map.on('draw.delete', (e) => setTimeout(() => {{
+    deleteFeature(e);
+    updateSidebarMeasurements(e);
+}}, 100));
 
 let distanceData = [];  // This will store distances globally
 
