@@ -295,10 +295,14 @@ mapbox_map_html = f"""
         }}
         document.getElementById('measurements').innerHTML = sidebarContent;
          
-        if (totalDistances.length > 0) {{
-            window.parent.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
-        }}
-    }}
+         // Send the distances to Streamlit using window.parent.postMessage
+       console.log("Calculated totalDistances:", totalDistances);
+       if (totalDistances.length > 0) {{
+           window.parent.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
+       }} else {{
+           console.log("No distances to send.");
+       }}
+   }}
     
     function toggleSidebar() {{
         var sidebar = document.getElementById('sidebar');
