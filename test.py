@@ -369,7 +369,7 @@ function deleteFeature(e) {{
             map.removeSource('marker-' + featureId);
         }}
 
-        console.log(`Feature ${featureId} and its color have been removed.`);
+        console.log(`Feature ${{featureId}} and its color have been removed.`);
     }});
 
     // Update measurements after deletion
