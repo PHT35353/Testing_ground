@@ -194,6 +194,10 @@ let lineMeasurements = {{}};
             window.distanceData = Object.values(lineMeasurements);
             console.log("Distance data updated:", window.distanceData);
         }}, 1000); // Add a 1-second delay before updating the global distance data
+        // Function to get distance data when requested
+        function getDistanceData() {{
+            return window.distanceData ? window.distanceData : [];
+        }}
     }}
 
       
@@ -384,27 +388,26 @@ function deleteFeature(e) {{
 """
 components.html(mapbox_map_html, height=600)
 
-# Function to fetch the distance data from JavaScript using retries
-def get_distance_data_with_retry(max_attempts=5, delay=1):
+if st.sidebar.button("Get Line Measurements"):
+    # JavaScript script to call the getDistanceData function
     distance_value_script = """
-    (() => {{
-        if (window.distanceData && window.distanceData.length > 0) {{
-            return window.distanceData;  // Return distance data if available
-        }} else {{
-            return null;  // If distance data isn't available yet, return null
-        }}
-    }})();
+    (() => {
+        return getDistanceData();
+    })();
     """
 
-    distanceValue = None
-    for attempt in range(max_attempts):
-        distanceValue = stjs(distance_value_script, key=f"distance_fetch_key_{attempt}")
-        if distanceValue and isinstance(distanceValue, list) and len(distanceValue) > 0:
-            return distanceValue
-        else:
-            time.sleep(delay*2)  # Wait for a short time before trying again
+    # Execute JavaScript and retrieve the distance data
+    distanceValue = stjs(distance_value_script, key="distance_data_fetch")
 
-    return None
+    # Check if a valid distance value is received
+    if distanceValue and isinstance(distanceValue, list) and len(distanceValue) > 0:
+        st.session_state['line_distances'] = distanceValue
+        st.sidebar.write("Line Measurements:")
+        for i, distance in enumerate(distanceValue):
+            st.sidebar.write(f"Line {i + 1}: {distance:.2f} km")
+    else:
+        st.sidebar.warning("No distances received. Please draw lines on the map and try again.")
+
 
 # Button to get distance data after drawing lines
 if st.button("Get Distance Data from Map"):
