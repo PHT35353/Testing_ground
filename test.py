@@ -373,6 +373,7 @@ function deleteFeature(e) {{
 
     // Update measurements after deletion
     updateMeasurements();
+    updateSidebarMeasurements(e)
 }}
 
 </script>
