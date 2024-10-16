@@ -388,7 +388,6 @@ function deleteFeature(e) {{
 """
 components.html(mapbox_map_html, height=600)
 
-if st.sidebar.button("Get Line Measurements"):
     # JavaScript script to call the getDistanceData function
    # Function to fetch the distance data from JavaScript using retries
 def get_distance_data_with_retry(max_attempts=5, delay=1):
@@ -424,7 +423,7 @@ distanceValue = None
 
     return None
 
-
+if st.sidebar.button("Get Line Measurements"):
 # Button to get distance data after drawing lines
 if st.button("Get Distance Data from Map"):
     # Attempt to get the distance data with retries
