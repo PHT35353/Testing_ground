@@ -156,18 +156,11 @@ mapbox_map_html = f"""
     let featureColors = {{}};
     let featureNames = {{}};
 
-    // Handle drawn features (lines, shapes)
-    map.on('draw.create', (e) => {{
-    setTimeout(() => updateMeasurements(e), 100); // Add a delay to ensure things are in sync
-}});
+   // Remove setTimeout calls around updateMeasurements and deleteFeature
+map.on('draw.create', updateMeasurements);
+map.on('draw.update', updateMeasurements);
+map.on('draw.delete', deleteFeature);
 
-    map.on('draw.update', (e) => {{
-    setTimeout(() => updateMeasurements(e), 100); // Add a delay to ensure things are in sync
-}});
-
-    map.on('draw.delete', (e) => {{
-    setTimeout(() => deleteFeature(e), 100); // Add a delay to ensure things are in sync
-}});
   
 
     function updateMeasurements(e) {{
