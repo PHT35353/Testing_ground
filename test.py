@@ -14,6 +14,7 @@ st.title("Piping tool")
 # Define the JavaScript script to fetch the distance data
 distance_value_script = """
 (() => {
+    // Returning distanceData if it is available, otherwise return null
     if (!window.distanceData) {
         console.log("No distanceData available to return.");
         return null;  // If distance data isn't available yet, return null
@@ -189,47 +190,31 @@ if (!distanceListenerAdded) {{
     console.log("Event listener already exists.");
 }}
 
-map.on('draw.create', (e) => setTimeout(() => {{
-    updateMeasurements(); // Updates the distance calculations
-    updateSidebarMeasurements(e); // Updates the sidebar with the details
-}}, 100));
 
-map.on('draw.update', (e) => setTimeout(() => {{
-    updateMeasurements(); // Updates the distance calculations
-    updateSidebarMeasurements(e); // Updates the sidebar with the details
-}}, 100));
+ // Define the distanceData variable globally, to be accessed by Python
+    window.distanceData = [];
 
-map.on('draw.delete', (e) => setTimeout(() => {{
-    deleteFeature(e);
-    updateSidebarMeasurements(e);
-}}, 100));
-// Function to update measurements and send distances to Python
-function updateMeasurements() {{
-    const data = Draw.getAll();
-    let totalDistances = [];
-    if (data.features.length > 0) {{
-        const features = data.features;
-        features.forEach(function (feature) {{
-            if (feature.geometry.type === 'LineString') {{
-                const length = turf.length(feature);
-                totalDistances.push(length);
-            }}
-        }});
+    function updateMeasurements() {{
+        const data = Draw.getAll();
+        window.distanceData = []; // Clear the previous distance data
+
+        if (data.features.length > 0) {{
+            const features = data.features;
+            features.forEach(function (feature) {{
+                if (feature.geometry.type === 'LineString') {{
+                    const length = turf.length(feature);
+                    window.distanceData.push(length);
+                }}
+            }});
+        }}
+
+        console.log("Updated distanceData:", window.distanceData);
     }}
 
-    console.log("Calculated totalDistances:", totalDistances);
-    if (totalDistances.length > 0) {{
-        // Send the distances to Streamlit using window.postMessage
-        window.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
-    }} else {{
-        console.log("No distances to send.");
-    }}
-}}
-
-// Call updateMeasurements() whenever there's a change
-map.on('draw.create', () => setTimeout(updateMeasurements, 100));
-map.on('draw.update', () => setTimeout(updateMeasurements, 100));
-map.on('draw.delete', () => setTimeout(updateMeasurements, 100));
+    // Update measurements whenever something is drawn, updated, or deleted
+    map.on('draw.create', () => setTimeout(updateMeasurements, 100));
+    map.on('draw.update', () => setTimeout(updateMeasurements, 100));
+    map.on('draw.delete', () => setTimeout(updateMeasurements, 100));
 
 
      
@@ -365,17 +350,6 @@ map.on('draw.delete', () => setTimeout(updateMeasurements, 100));
             sidebarContent = "<p>No features drawn yet.</p>";
         }}
         document.getElementById('measurements').innerHTML = sidebarContent;
-
-       // Send the distances to Streamlit using window.parent.postMessage
-       console.log("Calculated totalDistances:", totalDistances);
-       if (totalDistances.length > 0) {{
-           setTimeout(() => {{
-               console.log("Sending distances to parent:", totalDistances);
-               window.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
-           }}, 500);  // Added a 500ms delay to ensure feature is processed before sending.
-       }} else {{
-           console.log("No distances to send.");
-       }}          
    }}
     
     function toggleSidebar() {{
