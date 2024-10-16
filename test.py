@@ -578,47 +578,51 @@ def Pipe_finder(material, P, distanceValue):
     else:
         st.write("Material not found")
 
-# Function to get user inputs including pressure, temperature, medium, and pipe distance
+# Function to get user inputs including pressure, temperature, medium
 def get_user_inputs():
     # Get pressure from user
     pressure = st.number_input("Enter the pressure (bar):", min_value=0.0, format="%.2f")
-    
+
     # Get temperature from user
     temperature = st.number_input("Enter the temperature (°C):", min_value=0.0, format="%.2f")
-    
+
     # Get medium from user
     medium = st.text_input("Enter the medium:")
-    
+
+    return pressure, temperature, medium
+
+# Function to get the distance value from session state
+def get_distance_value():
     # Fetch the distance value from session state, or set to 0 if not available
     if 'line_distances' in st.session_state and st.session_state['line_distances']:
         distanceValue = sum(st.session_state['line_distances'])  # Sum of all line distances in meters
+        return distanceValue
     else:
-        st.warning("No line distances available yet. Please draw lines on the map.")
-        distanceValue = 0.0
-    
-    # Return all user inputs
-    return pressure, temperature, medium, distanceValue
+        return None  # Return None if distance is not available
 
-
+# Main function to run the app
 def pipe_main():
     st.title("Pipe Selection Tool")
-    
-    try:
-        # Get the inputs, including the distance from session state
-        P, T, M, distanceValue = get_user_inputs()
 
-        # Add a button to calculate pipes and cost
-        if st.button("Find Pipes"):
-            # Check if a valid distance is available
-            if distanceValue > 0:
+    try:
+        # Get the inputs from the user
+        P, T, M = get_user_inputs()
+
+        # Wait until the distance value is available
+        distanceValue = get_distance_value()
+
+        # Display a warning message if no distance value is available
+        if distanceValue is None:
+            st.warning("No line distances available yet. Please draw lines on the map to proceed.")
+        else:
+            # Add a button to calculate pipes and cost
+            if st.button("Find Pipes"):
                 Pipe_Material = choose_pipe_material(P, T, M)  # Choose the pipe material based on the inputs
                 st.write(f"Selected Pipe Material: {Pipe_Material}")
 
                 # Use the entered distance in the pipe finding and cost calculation
                 Pipe_finder(Pipe_Material, P, distanceValue)
-            else:
-                st.warning("Please draw a line on the map to get the distance value.")
-    
+
     except Exception as e:
         st.error(f"An error occurred: {e}")
 
