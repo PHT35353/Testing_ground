@@ -6,6 +6,7 @@ import requests
 import json
 import streamlit.components.v1 as components
 from streamlit_javascript import st_javascript as stjs 
+import time
 
 # Set up a title for the app
 st.title("Piping tool")
@@ -173,7 +174,24 @@ map.on('draw.delete', (e) => setTimeout(() => {{
 }}, 100));
 
 
-   function updateMeasurements() {{
+let distanceData = [];  // This will store distances globally
+
+// Ensure the distance listener is added only once
+if (!distanceListenerAdded) {{
+    window.addEventListener('message', (event) => {{
+        if (event.data.type === 'distanceUpdate') {{
+            console.log("Received distances from the map:", event.data.distances);
+            distanceData = event.data.distances;  // Store the received data globally
+        }}
+    }});
+    distanceListenerAdded = true;  // Prevent adding multiple listeners
+    console.log("Distance event listener added.");
+}} else {{
+    console.log("Event listener already exists.");
+}}
+
+// Function to update measurements and send distances to Python
+function updateMeasurements() {{
     const data = Draw.getAll();
     let totalDistances = [];
     if (data.features.length > 0) {{
@@ -186,42 +204,20 @@ map.on('draw.delete', (e) => setTimeout(() => {{
         }});
     }}
 
-    // Send the distances to Streamlit using window.postMessage
     console.log("Calculated totalDistances:", totalDistances);
     if (totalDistances.length > 0) {{
-        setTimeout(() => {{
-            console.log("Sending distances to parent:", totalDistances);
-            window.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
-        }}, 500);  // Added a 500ms delay to ensure feature is processed before sending.
+        // Send the distances to Streamlit using window.postMessage
+        window.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
     }} else {{
         console.log("No distances to send.");
     }}
 }}
 
-// Ensure event listener for message is only added once.
-if (!distanceListenerAdded) {{
-    window.addEventListener('message', (event) => {{
-        if (event.data.type === 'distanceUpdate') {{
-            console.log("Received distances from the map:", event.data.distances);
-            window.distanceData = event.data.distances;  // Store the received data globally
-        }}
-    }});
-    distanceListenerAdded = true;  // Prevent adding multiple listeners.
-    console.log("Distance event listener added.");
- }} else {{
-    console.log("Event listener already exists.");
- }}
+// Call updateMeasurements() whenever there's a change
+map.on('draw.create', () => setTimeout(updateMeasurements, 100));
+map.on('draw.update', () => setTimeout(updateMeasurements, 100));
+map.on('draw.delete', () => setTimeout(updateMeasurements, 100));
 
-// Add this function to return distances or null if not available.
-(() => {{
-    if (window.distanceData && window.distanceData.length > 0) {{
-        console.log("Returning distanceData to Python:", window.distanceData);
-        return window.distanceData;
-     }} else {{
-        console.log("No distanceData available to return.");
-        return null;
-     }}
-}})();
 
      
     function updateSidebarMeasurements(e) {{
@@ -401,49 +397,35 @@ components.html(mapbox_map_html, height=600)
 
 distance_value_script = """
 (() => {
-    // Ensure the event listener is only added once
-    if (!window.distanceListenerAdded) {
-        window.addEventListener('message', (event) => {
-            if (event.data.type === 'distanceUpdate') {
-                console.log("Received distances from the map:", event.data.distances);
-                window.distanceData = event.data.distances;  // Store the received data globally
-            }
-        });
-        window.distanceListenerAdded = true;  // Prevent adding multiple listeners
-        console.log("Distance event listener added.");
+    if (!window.distanceData) {
+        console.log("No distanceData available to return.");
+        return null;  // If distance data isn't available yet, return null
     }
-
-    // Return the distance data immediately if available
-    if (window.distanceData && window.distanceData.length > 0) {
-        return window.distanceData;
-    } else {
-        return null;  // Return null if no data available yet
-    }
+    console.log("Returning distanceData to Python:", window.distanceData);
+    return window.distanceData;
 })();
 """
 
-distanceValue = stjs(distance_value_script)
 
-if distanceValue is None or not isinstance(distanceValue, list) or len(distanceValue) == 0:
-    st.warning("No distances received yet. There may be an issue with JavaScript messaging.")
-    st.write("Debug Info: distanceValue =", distanceValue)
+def get_distance_value():
+    distanceValue = None
+    for _ in range(5):  # Try up to 5 times to get a valid value
+        distanceValue = stjs(distance_value_script)
+        if distanceValue and isinstance(distanceValue, list) and len(distanceValue) > 0:
+            break
+        time.sleep(1)  # Sleep for 1 second before retrying
+
+    if distanceValue is None or len(distanceValue) == 0:
+        return None
+    return sum([float(dist) for dist in distanceValue])  # Return the sum of distances
+
+distanceValue = get_distance_value()
+
+if distanceValue is None:
+    st.warning("No distances received after multiple attempts. Please try drawing lines again.")
 else:
-    try:
-        # Ensure distanceValue is a list of floats
-        distanceValue = [float(value) for value in distanceValue]
-
-        # Update session state with the new distances
-        if 'line_distances' not in st.session_state:
-            st.session_state['line_distances'] = []
-
-        st.session_state['line_distances'] = distanceValue
-
-        # Confirm that the distance was correctly received
-        st.write(f"Updated Distance in Session State: {st.session_state['line_distances']}")
-
-    except Exception as e:
-        st.error(f"Error processing distance data: {e}")
-        st.write("Debug Info: distanceValue =", distanceValue)
+    st.write(f"Retrieved Distance Value: {distanceValue} meters")
+    # You can now proceed with the logic to calculate pipe material and cost
 
 
 
