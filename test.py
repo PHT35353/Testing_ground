@@ -294,8 +294,8 @@ mapbox_map_html = f"""
         }}
         document.getElementById('measurements').innerHTML = sidebarContent;
           // Send the distances to Streamlit using window.parent.postMessage
-      console.log("Sending distances to parent: ", totalDistances);
-      window.parent.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
+     console.log("Calculated distances: ", totalDistances);
+     window.parent.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
     }}
 
     function toggleSidebar() {{
@@ -342,18 +342,21 @@ await new Promise((resolve) => {
 
 distanceValue = stjs(distance_value_script)
 
-if distanceValue is not None:
+if distanceValue:
     try:
         # Update session state with the new distances
         if 'line_distances' not in st.session_state:
             st.session_state['line_distances'] = []
 
-        # Log distance value to check if it's correctly received
-        st.write(f"Received Distance: {distanceValue}")
-
         st.session_state['line_distances'] = distanceValue
+
+        # Confirm that the distance was correctly received
+        st.write(f"Updated Distance in Session State: {st.session_state['line_distances']}")
+
     except Exception as e:
         st.error(f"Error processing distance data: {e}")
+else:
+    st.warning("Distance value not received correctly from JavaScript.")
 
 
 def handle_distance_update(distanceValue):
@@ -612,7 +615,7 @@ def pipe_main():
         distanceValue = get_distance_value()
 
         # Display a warning message if no distance value is available
-        if distanceValue is None:
+        if distanceValue is None or len(distanceValue) == 0:
             st.warning("No line distances available yet. Please draw lines on the map to proceed.")
         else:
             # Add a button to calculate pipes and cost
