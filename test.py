@@ -374,7 +374,8 @@ distance_value_script = """
 
 distanceValue = stjs(distance_value_script)
 
-if distanceValue is None or len(distanceValue) == 0:
+# Update to check distanceValue as an integer
+if distanceValue is None or distanceValue == 0:
     st.warning("No distances received yet. There may be an issue with JavaScript messaging.")
 else:
     try:
@@ -389,6 +390,7 @@ else:
 
     except Exception as e:
         st.error(f"Error processing distance data: {e}")
+
 
 
 
