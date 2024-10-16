@@ -338,11 +338,6 @@ components.html(mapbox_map_html, height=600)
 
 distance_value_script = """
 (() => {
-    // Initialize global distanceData variable if not already defined
-    if (!window.distanceData) {
-        window.distanceData = [];
-    }
-
     // Ensure that the event listener is registered globally only once
     if (!window.distanceListenerAdded) {
         window.addEventListener('message', (event) => {
@@ -357,28 +352,27 @@ distance_value_script = """
         console.log("Event listener already exists.");
     }
 
-    // Check if the distance data has been updated, and return it
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            if (window.distanceData && window.distanceData.length > 0) {
-                console.log("Returning distanceData to Python:", window.distanceData);
-                resolve(window.distanceData);
-            } else {
-                console.log("No distanceData available to return.");
-                resolve(null);
-            }
-        }, 500);  // 500ms delay to ensure data has been updated
-    });
+    // Return the distance data immediately if available
+    if (window.distanceData && window.distanceData.length > 0) {
+        console.log("Returning distanceData to Python:", window.distanceData);
+        return window.distanceData;
+    } else {
+        console.log("No distanceData available to return.");
+        return null;
+    }
 })();
+
 """
 
 distanceValue = stjs(distance_value_script)
 
-# Update to check distanceValue as an integer
-if distanceValue is None or distanceValue == 0:
+if distanceValue is None or not isinstance(distanceValue, list) or len(distanceValue) == 0:
     st.warning("No distances received yet. There may be an issue with JavaScript messaging.")
 else:
     try:
+        # Ensure distanceValue is a list of floats
+        distanceValue = [float(value) for value in distanceValue]
+
         # Update session state with the new distances
         if 'line_distances' not in st.session_state:
             st.session_state['line_distances'] = []
@@ -390,10 +384,6 @@ else:
 
     except Exception as e:
         st.error(f"Error processing distance data: {e}")
-
-
-
-
 
 if distanceValue:
     try:
@@ -412,11 +402,14 @@ else:
     st.warning("Distance value not received correctly from JavaScript.")
 
 
-def handle_distance_update(distanceValue):
-    # If 'line_distances' is not present in session state, initialize it
-    if 'line_distances' not in st.session_state:
-        st.session_state['line_distances'] = []
-
+# Function to get the distance value from session state
+def get_distance_value():
+    # Fetch the distance value from session state, or return None if not available
+    if 'line_distances' in st.session_state and isinstance(st.session_state['line_distances'], list):
+        distanceValue = sum(st.session_state['line_distances'])  # Sum of all line distances in meters
+        return distanceValue
+    else:
+        return None  # Return None if distance is not available
 
 # Handle received distance data
 if distanceValue:
