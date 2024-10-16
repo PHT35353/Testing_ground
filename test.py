@@ -584,13 +584,11 @@ def get_user_inputs():
     temperature = st.number_input("Enter the temperature (°C):", min_value=0.0, format="%.2f")
     medium = st.text_input("Enter the medium:")
      # Fetch the distance value from session state, or default to 0 if not available
-if 'line_distances' in st.session_state and st.session_state['line_distances']:
+  if 'line_distances' in st.session_state and st.session_state['line_distances']:
     distanceValue = sum(st.session_state['line_distances'])  # Sum of all line distances in meters
-else:
+  else:
     st.warning("No line distances available yet. Please draw lines on the map.")
     distanceValue = 0.0
-    
-    
 return pressure, temperature, medium, distanceValue
 
 # Main function to run the app
