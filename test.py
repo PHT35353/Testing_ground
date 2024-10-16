@@ -194,7 +194,17 @@ mapbox_map_html = f"""
         updateMeasurements();
     }});
 
-     
+// Attach the updateMeasurements function to Mapbox draw events
+      map.on('draw.create', () => {{
+          updateSidebarMeasurements(e);
+      }});
+      map.on('draw.update', () => {{
+          updateSidebarMeasurements(e);
+      }});
+      map.on('draw.delete', () => {{
+          updateSidebarMeasurements(e);
+      }});
+      
     function updateSidebarMeasurements(e) {{
         const data = Draw.getAll();
         let sidebarContent = "";
@@ -222,16 +232,6 @@ mapbox_map_html = f"""
                         featureColors[feature.id] = lineColor || 'blue';
                     }}
 
-                       // Attach the updateMeasurements function to Mapbox draw events
-                       map.on('draw.create', () => {{
-                           updateSidebarMeasurements(e);
-                       }});
-                       map.on('draw.update', () => {{
-                          updateSidebarMeasurements(e);
-                       }});
-                       map.on('draw.delete', () => {{
-                          updateSidebarMeasurements(e);
-                       }});
                     
                     // Update the feature's source when it's moved to ensure the color moves with it
                     map.getSource('line-' + feature.id)?.setData(feature);
