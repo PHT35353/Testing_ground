@@ -224,13 +224,13 @@ mapbox_map_html = f"""
 
                        // Attach the updateMeasurements function to Mapbox draw events
                        map.on('draw.create', () => {{
-                           updateMeasurements();
+                           updateSidebarMeasurements(e);
                        }});
                        map.on('draw.update', () => {{
-                           updateMeasurements();
+                          updateSidebarMeasurements(e);
                        }});
                        map.on('draw.delete', () => {{
-                           updateMeasurements();
+                          updateSidebarMeasurements(e);
                        }});
                     
                     // Update the feature's source when it's moved to ensure the color moves with it
