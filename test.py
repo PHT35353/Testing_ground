@@ -188,16 +188,13 @@ let lineMeasurements = {{}};
                 }}
             }});
         }}
-
         // Update the global distance data
         // Introduce a delay before updating window.distanceData
-    
         setTimeout(() => {{
             window.distanceData = Object.values(lineMeasurements);
             console.log("Distance data updated:", window.distanceData);
         }}, 1000); // Add a 1-second delay before updating the global distance data
-
-     }}
+    }}
 
       
     function updateSidebarMeasurements(e) {{
