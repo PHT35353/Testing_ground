@@ -169,7 +169,7 @@ map.on('draw.update', (e) => {{
     updateSidebarMeasurements(e);
 }});
 map.on('draw.delete', (e) => {{
-deleteFeature(e));
+deleteFeature(e);
 }});  
 
 
