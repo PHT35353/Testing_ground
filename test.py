@@ -160,8 +160,28 @@ mapbox_map_html = f"""
     map.on('draw.update', (e) => setTimeout(() => updateMeasurements(e), 100));
     map.on('draw.delete', (e) => setTimeout(() => deleteFeature(e), 100));
 
-  
+   function updateMeasurements() {{
+        const data = Draw.getAll();
+        let totalDistances = []; 
+        if (data.features.length > 0) {{
+            const features = data.features;
+            features.forEach(function (feature) {{
+                if (feature.geometry.type === 'LineString') {{
+                    const length = turf.length(feature);
+                    totalDistances.push(length);
+                }}
+            }});
+        }}
 
+        // Send the distances to Streamlit using window.postMessage
+        console.log("Calculated totalDistances:", totalDistances);
+        if (totalDistances.length > 0) {{
+            window.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
+        }} else {{
+            console.log("No distances to send.");
+        }}
+     }}
+     
     function updateMeasurements(e) {{
         const data = Draw.getAll();
         let sidebarContent = "";
@@ -300,7 +320,7 @@ mapbox_map_html = f"""
         if (totalDistances.length > 0) {{
             alert("Sending distances: " + totalDistances);  // Debugging pop-up
             console.log("Sending distances to parent:", totalDistances);
-            window.parent.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
+            window.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
         }} else {{
             console.log("No distances to send.");
         }}          
@@ -361,13 +381,14 @@ distance_value_script = """
         return null;
     }
 })();
-
 """
 
-distanceValue = stjs(distance_value_script)
+distanceValue = stjs.st_javascript(distance_value_script)
+
 
 if distanceValue is None or not isinstance(distanceValue, list) or len(distanceValue) == 0:
     st.warning("No distances received yet. There may be an issue with JavaScript messaging.")
+    st.write("Debug Info: distanceValue =", distanceValue)
 else:
     try:
         # Ensure distanceValue is a list of floats
@@ -384,6 +405,8 @@ else:
 
     except Exception as e:
         st.error(f"Error processing distance data: {e}")
+        st.write("Debug Info: distanceValue =", distanceValue)
+
 
 if distanceValue:
     try:
