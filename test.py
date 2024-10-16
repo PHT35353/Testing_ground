@@ -396,6 +396,22 @@ map.on('draw.delete', () => setTimeout(updateMeasurements, 100));
 """
 components.html(mapbox_map_html, height=600)
 
+# Button to get distance data after drawing lines
+if st.button("Get Distance Data from Map"):
+    # Fetch distance data from JavaScript using stjs
+    distanceValue = stjs(distance_value_script, key="distance_fetch_key")
+    
+    # Check if a valid distance value is received
+    if distanceValue and isinstance(distanceValue, list) and len(distanceValue) > 0:
+        # Update the session state with the new distances
+        st.session_state['line_distances'] = distanceValue
+
+        # Confirm that the distance was correctly received
+        st.write(f"Updated Distance in Session State: {st.session_state['line_distances']}")
+    else:
+        st.warning("No distances received. Please draw lines on the map and try again.")
+
+
 distance_value_script = """
 (() => {
     if (!window.distanceData) {
@@ -409,16 +425,13 @@ distance_value_script = """
 
 
 def get_distance_value():
-    distanceValue = None
-    for attempt in range(5):  # Try up to 5 times to get a valid value
-        distanceValue = stjs(distance_value_script, key=f"distance_attempt_{attempt}")
-        if distanceValue and isinstance(distanceValue, list) and len(distanceValue) > 0:
-            break
-        time.sleep(1)  # Sleep for 1 second before retrying
+    # Fetch the distance value from session state, or set to 0 if not available
+    if 'line_distances' in st.session_state and st.session_state['line_distances']:
+        distanceValue = sum(st.session_state['line_distances'])  # Sum of all line distances in meters
+        return distanceValue
+    else:
+        return None  # Return None if distance is not available
 
-    if distanceValue is None or distanceValue == 0:
-        return None
-    return sum([float(dist) for dist in distanceValue])  # Return the sum of distances
 
 
 distanceValue = get_distance_value()
