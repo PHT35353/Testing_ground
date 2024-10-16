@@ -11,6 +11,18 @@ import time
 # Set up a title for the app
 st.title("Piping tool")
 
+# Define the JavaScript script to fetch the distance data
+distance_value_script = """
+(() => {
+    if (!window.distanceData) {
+        console.log("No distanceData available to return.");
+        return null;  // If distance data isn't available yet, return null
+    }
+    console.log("Returning distanceData to Python:", window.distanceData);
+    return window.distanceData;
+})();
+"""
+
 # Add instructions and explain color options
 st.markdown("""
 This tool allows you to:
@@ -410,18 +422,6 @@ if st.button("Get Distance Data from Map"):
         st.write(f"Updated Distance in Session State: {st.session_state['line_distances']}")
     else:
         st.warning("No distances received. Please draw lines on the map and try again.")
-
-
-distance_value_script = """
-(() => {
-    if (!window.distanceData) {
-        console.log("No distanceData available to return.");
-        return null;  // If distance data isn't available yet, return null
-    }
-    console.log("Returning distanceData to Python:", window.distanceData);
-    return window.distanceData;
-})();
-"""
 
 
 def get_distance_value():
