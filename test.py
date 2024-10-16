@@ -299,7 +299,7 @@ mapbox_map_html = f"""
         console.log("Calculated totalDistances:", totalDistances);
         if (totalDistances.length > 0) {{
            alert("Sending distances: " + totalDistances);  // For testing purposes
-           window.parent.postMessage({{ type: 'distanceUpdate', distances: totalDistances }, '*');
+           window.parent.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
         }} else {{
            console.log("No distances to send.");
         }}          
