@@ -294,14 +294,12 @@ mapbox_map_html = f"""
             sidebarContent = "<p>No features drawn yet.</p>";
         }}
         document.getElementById('measurements').innerHTML = sidebarContent;
-        // Send the distances to Streamlit using window.parent.postMessage
-        console.log("Calculated totalDistances:", totalDistances);
+         
         if (totalDistances.length > 0) {{
-           window.parent.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
-        }} else {{
-        console.log("No distances to send.");
+            window.parent.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
         }}
-
+    }}
+    
     function toggleSidebar() {{
         var sidebar = document.getElementById('sidebar');
         if (sidebar.classList.contains('collapsed')) {{
