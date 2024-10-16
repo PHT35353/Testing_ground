@@ -177,6 +177,20 @@ if (!distanceListenerAdded) {{
     console.log("Event listener already exists.");
 }}
 
+map.on('draw.create', (e) => setTimeout(() => {{
+    updateMeasurements(); // Updates the distance calculations
+    updateSidebarMeasurements(e); // Updates the sidebar with the details
+}}, 100));
+
+map.on('draw.update', (e) => setTimeout(() => {{
+    updateMeasurements(); // Updates the distance calculations
+    updateSidebarMeasurements(e); // Updates the sidebar with the details
+}}, 100));
+
+map.on('draw.delete', (e) => setTimeout(() => {{
+    deleteFeature(e);
+    updateSidebarMeasurements(e);
+}}, 100));
 // Function to update measurements and send distances to Python
 function updateMeasurements() {{
     const data = Draw.getAll();
@@ -396,8 +410,8 @@ distance_value_script = """
 
 def get_distance_value():
     distanceValue = None
-    for _ in range(5):  # Try up to 5 times to get a valid value
-        distanceValue = stjs(distance_value_script)
+    for attempt in range(5):  # Try up to 5 times to get a valid value
+        distanceValue = stjs(distance_value_script, key=f"distance_attempt_{attempt}")
         if distanceValue and isinstance(distanceValue, list) and len(distanceValue) > 0:
             break
         time.sleep(1)  # Sleep for 1 second before retrying
@@ -405,6 +419,7 @@ def get_distance_value():
     if distanceValue is None or len(distanceValue) == 0:
         return None
     return sum([float(dist) for dist in distanceValue])  # Return the sum of distances
+
 
 distanceValue = get_distance_value()
 
