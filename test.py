@@ -157,9 +157,21 @@ mapbox_map_html = f"""
     let featureColors = {{}};
     let featureNames = {{}};
 
-    map.on('draw.create', (e) => setTimeout(() => updateMeasurements(e), 100));
-    map.on('draw.update', (e) => setTimeout(() => updateMeasurements(e), 100));
-    map.on('draw.delete', (e) => setTimeout(() => deleteFeature(e), 100));
+   map.on('draw.create', (e) => setTimeout(() => {{
+    updateMeasurements(); // Updates the distance calculations
+    updateSidebarMeasurements(e); // Updates the sidebar with the details
+}}, 100));
+
+map.on('draw.update', (e) => setTimeout(() => {{
+    updateMeasurements(); // Updates the distance calculations
+    updateSidebarMeasurements(e); // Updates the sidebar with the details
+}}, 100));
+
+map.on('draw.delete', (e) => setTimeout(() => {{
+    deleteFeature(e);
+    updateSidebarMeasurements(e);
+}}, 100));
+
 
    function updateMeasurements() {{
     const data = Draw.getAll();
@@ -212,7 +224,7 @@ if (!distanceListenerAdded) {{
 }})();
 
      
-    function updateMeasurements(e) {{
+    function updateSidebarMeasurements(e) {{
         const data = Draw.getAll();
         let sidebarContent = "";
         let totalDistances = []; 
@@ -345,16 +357,17 @@ if (!distanceListenerAdded) {{
         }}
         document.getElementById('measurements').innerHTML = sidebarContent;
 
-        // Send the distances to Streamlit using window.parent.postMessage
-        console.log("Calculated totalDistances:", totalDistances);
-        if (totalDistances.length > 0) {{
-            alert("Sending distances: " + totalDistances);  // Debugging pop-up
-            console.log("Sending distances to parent:", totalDistances);
-            window.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
-        }} else {{
-            console.log("No distances to send.");
-        }}          
-    }}
+       // Send the distances to Streamlit using window.parent.postMessage
+       console.log("Calculated totalDistances:", totalDistances);
+       if (totalDistances.length > 0) {{
+           setTimeout(() => {{
+               console.log("Sending distances to parent:", totalDistances);
+               window.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
+           }}, 500);  // Added a 500ms delay to ensure feature is processed before sending.
+       }} else {{
+           console.log("No distances to send.");
+       }}          
+   }}
     
     function toggleSidebar() {{
         var sidebar = document.getElementById('sidebar');
