@@ -184,7 +184,7 @@ let lineMeasurements = {{}};
                 if (feature.geometry.type === 'LineString') {{
                     const length = turf.length(feature, {{ units: 'kilometers' }});
                     totalDistance.push(length);
-                   lineMeasurements[feature.id] = length;
+                    lineMeasurements[feature.id] = length;
                 }}
             }});
         }}
@@ -228,11 +228,6 @@ let lineMeasurements = {{}};
                     // Update the feature's source when it's moved to ensure the color moves with it
                     map.getSource('line-' + feature.id)?.setData(feature);
 
-                     map.addSource('line-' + feature.id, {{
-                         type: 'geojson',
-                         data: feature
-                     }});
-
                     map.addLayer({{
                         id: 'line-' + feature.id,
                         type: 'line',
@@ -246,10 +241,7 @@ let lineMeasurements = {{}};
                             'line-width': 4
                         }}
                     }});
-                    }} else {{
-                        // If the layer already exists, just update its data
-                       map.getSource('line-' + feature.id).setData(feature);
-                    }}
+                    
 
                     let distanceUnit = length >= 1 ? 'km' : 'm';
                     let distanceValue = length >= 1 ? length.toFixed(2) : (length * 1000).toFixed(2);
@@ -410,7 +402,7 @@ def get_distance_data_with_retry(max_attempts=5, delay=1):
         if distanceValue and isinstance(distanceValue, list) and len(distanceValue) > 0:
             return distanceValue
         else:
-            time.sleep(delay)  # Wait for a short time before trying again
+            time.sleep(delay*2)  # Wait for a short time before trying again
 
     return None
 
