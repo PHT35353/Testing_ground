@@ -194,7 +194,7 @@ deleteFeature(e);
             let distanceValue = totalDistance;
             window.distanceData = distanceValue;
             console.log("Distance data updated:", window.distanceData);
-        }}, 50000);  // Delay of 500 ms (can be adjusted)
+        }}, 5000);  // Delay of 500 ms (can be adjusted)
 
     }}
 
