@@ -591,7 +591,7 @@ else:
     distanceValue = 0.0
     
     
-    return pressure, temperature, medium, distanceValue
+return pressure, temperature, medium, distanceValue
 
 # Main function to run the app
 def pipe_main():
