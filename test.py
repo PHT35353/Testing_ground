@@ -159,7 +159,19 @@ mapbox_map_html = f"""
     let featureColors = {{}};
     let featureNames = {{}};
 
-   
+   // Attach the updateMeasurements function to Mapbox draw events
+    map.on('draw.create', () => {{
+        updateMeasurements();
+        updateSidebarMeasurements(e);
+    }});
+    map.on('draw.update', () => {{
+        updateMeasurements();
+        updateSidebarMeasurements(e);
+    }});
+    map.on('draw.delete', () => {{
+        updateMeasurements();
+        updateSidebarMeasurements(e);
+    }});
 
 
  // Function to update the distance measurements
@@ -183,27 +195,6 @@ mapbox_map_html = f"""
 
     }}
 
-    // Attach the updateMeasurements function to Mapbox draw events
-    map.on('draw.create', () => {{
-        updateMeasurements();
-    }});
-    map.on('draw.update', () => {{
-        updateMeasurements();
-    }});
-    map.on('draw.delete', () => {{
-        updateMeasurements();
-    }});
-
-// Attach the updateMeasurements function to Mapbox draw events
-      map.on('draw.create', () => {{
-          updateSidebarMeasurements(e);
-      }});
-      map.on('draw.update', () => {{
-          updateSidebarMeasurements(e);
-      }});
-      map.on('draw.delete', () => {{
-          updateSidebarMeasurements(e);
-      }});
       
     function updateSidebarMeasurements(e) {{
         const data = Draw.getAll();
