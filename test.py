@@ -172,7 +172,7 @@ map.on('draw.delete', (e) => {{
 deleteFeature(e);
 }});  
 
-
+let lineMeasurements = {{}};
 
  // Function to update the distance measurements
     function updateMeasurements() {{
@@ -184,7 +184,7 @@ deleteFeature(e);
                 if (feature.geometry.type === 'LineString') {{
                     const length = turf.length(feature, {{ units: 'kilometers' }});
                     totalDistance.push(length);
-                    let distanceValues = length >= 1 ? length.toFixed(2) : (length * 1000).toFixed(2);
+                   lineMeasurements[feature.id] = length;
                 }}
             }});
         }}
@@ -192,7 +192,7 @@ deleteFeature(e);
         // Update the global distance data
         // Introduce a delay before updating window.distanceData
         setTimeout(() => {{
-            window.distanceData = distanceValues;
+            window.distanceData = lineMeasurments;
             console.log("Distance data updated:", window.distanceData);
         }}, 5000);  // Delay of 500 ms (can be adjusted)
 
