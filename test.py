@@ -191,7 +191,7 @@ deleteFeature(e);
         // Update the global distance data
         // Introduce a delay before updating window.distanceData
         setTimeout(() => {{
-            let distanceValue = totalDistance;
+            let distanceValue = length;
             window.distanceData = distanceValue;
             console.log("Distance data updated:", window.distanceData);
         }}, 5000);  // Delay of 500 ms (can be adjusted)
@@ -392,7 +392,7 @@ def get_distance_data_with_retry(max_attempts=5, delay=1):
         if (window.distanceData && window.distanceData.length > 0) {
             return window.distanceData;  // Return distance data if available
         } else {
-            return 1;  // If distance data isn't available yet, return null
+            return null;  // If distance data isn't available yet, return null
         }
     })();
     """
