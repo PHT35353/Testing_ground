@@ -189,9 +189,11 @@ deleteFeature(e);
         }}
 
         // Update the global distance data
-        window.distanceData = totalDistances;
-        console.log("Distance data updated:", window.distanceData);
-        console.log("Fetching distance data:", window.distanceData);
+        // Introduce a delay before updating window.distanceData
+        setTimeout(() => {{
+            window.distanceData = totalDistances;
+            console.log("Distance data updated:", window.distanceData);
+        }}, 500);  // Delay of 500 ms (can be adjusted)
 
     }}
 
@@ -382,12 +384,8 @@ function deleteFeature(e) {{
 """
 components.html(mapbox_map_html, height=600)
 
-# Button to get distance data after drawing lines
-if st.button("Get Distance Data from Map"):
-    # Add a delay before fetching the distance data to ensure JavaScript finishes updating data
-    time.sleep(1)  # Wait for 1 second
-
-    # Define the JavaScript script to fetch the distance data
+# Function to fetch the distance data from JavaScript using retries
+def get_distance_data_with_retry(max_attempts=5, delay=1):
     distance_value_script = """
     (() => {
         if (window.distanceData && window.distanceData.length > 0) {
@@ -397,17 +395,30 @@ if st.button("Get Distance Data from Map"):
         }
     })();
     """
-    
-    # Fetch distance data from JavaScript using stjs
-    distanceValue = stjs(distance_value_script, key="distance_fetch_key")
+
+    distanceValue = None
+    for attempt in range(max_attempts):
+        distanceValue = stjs(distance_value_script, key=f"distance_fetch_key_{attempt}")
+        if distanceValue and isinstance(distanceValue, list) and len(distanceValue) > 0:
+            return distanceValue
+        else:
+            time.sleep(delay)  # Wait for a short time before trying again
+
+    return None
+
+# Button to get distance data after drawing lines
+if st.button("Get Distance Data from Map"):
+    # Attempt to get the distance data with retries
+    distanceValue = get_distance_data_with_retry()
 
     # Check if a valid distance value is received
-    if distanceValue and isinstance(distanceValue, list) and len(distanceValue) > 0:
+    if distanceValue:
         # Update the session state with the new distances
         st.session_state['line_distances'] = distanceValue
         st.write(f"Updated Distance in Session State: {st.session_state['line_distances']}")
     else:
-        st.warning("No distances received. Please draw lines on the map and try again.")
+        st.warning("No distances received after multiple attempts. Please try drawing lines again.")
+
 
 
 
