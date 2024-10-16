@@ -157,9 +157,18 @@ mapbox_map_html = f"""
     let featureNames = {{}};
 
     // Handle drawn features (lines, shapes)
-    map.on('draw.create', updateMeasurements);
-    map.on('draw.update', updateMeasurements);
-    map.on('draw.delete', deleteFeature);
+    map.on('draw.create', (e) => {{
+    setTimeout(() => updateMeasurements(e), 100); // Add a delay to ensure things are in sync
+}});
+
+    map.on('draw.update', (e) => {{
+    setTimeout(() => updateMeasurements(e), 100); // Add a delay to ensure things are in sync
+}});
+
+    map.on('draw.delete', (e) => {{
+    setTimeout(() => deleteFeature(e), 100); // Add a delay to ensure things are in sync
+}});
+  
 
     function updateMeasurements(e) {{
         const data = Draw.getAll();
@@ -294,8 +303,9 @@ mapbox_map_html = f"""
         }}
         document.getElementById('measurements').innerHTML = sidebarContent;
           // Send the distances to Streamlit using window.parent.postMessage
-     console.log("Calculated distances: ", totalDistances);
-     window.parent.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
+          console.log("Sending totalDistances to parent window: ", totalDistances);
+          window.parent.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
+
     }}
 
     function toggleSidebar() {{
@@ -331,16 +341,27 @@ components.html(mapbox_map_html, height=600)
 # Use JavaScript callback to get the distance value
 distance_value_script = """
 await new Promise((resolve) => {
-    window.addEventListener('message', (event) => {
-        if (event.data.type === 'distanceUpdate') {
-            console.log("Received distances: ", event.data.distances);
-            resolve(event.data.distances);
-        }
-    });
+    // Ensure that the event listener is registered globally
+    if (!window.distanceListenerAdded) {
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'distanceUpdate') {
+                console.log("Received distances from the map: ", event.data.distances);
+                resolve(event.data.distances);
+            }
+        });
+        window.distanceListenerAdded = true;  // Prevent adding multiple listeners
+    }
 });
 """
 
+
 distanceValue = stjs(distance_value_script)
+
+if distanceValue:
+    st.write(f"Distance values received from JavaScript: {distanceValue}")
+else:
+    st.warning("No distances received yet. There may be an issue with JavaScript messaging.")
+
 
 if distanceValue:
     try:
