@@ -118,6 +118,7 @@ mapbox_map_html = f"""
 <button id="toggleSidebar" onclick="toggleSidebar()">Collapse</button>
 <div id="map"></div>
 <script>
+    let distanceListenerAdded = false;
     mapboxgl.accessToken = '{mapbox_access_token}';
 
     const map = new mapboxgl.Map({{
@@ -161,26 +162,55 @@ mapbox_map_html = f"""
     map.on('draw.delete', (e) => setTimeout(() => deleteFeature(e), 100));
 
    function updateMeasurements() {{
-        const data = Draw.getAll();
-        let totalDistances = []; 
-        if (data.features.length > 0) {{
-            const features = data.features;
-            features.forEach(function (feature) {{
-                if (feature.geometry.type === 'LineString') {{
-                    const length = turf.length(feature);
-                    totalDistances.push(length);
-                }}
-            }});
-        }}
+    const data = Draw.getAll();
+    let totalDistances = [];
+    if (data.features.length > 0) {{
+        const features = data.features;
+        features.forEach(function (feature) {{
+            if (feature.geometry.type === 'LineString') {{
+                const length = turf.length(feature);
+                totalDistances.push(length);
+            }}
+        }});
+    }}
 
-        // Send the distances to Streamlit using window.postMessage
-        console.log("Calculated totalDistances:", totalDistances);
-        if (totalDistances.length > 0) {{
+    // Send the distances to Streamlit using window.postMessage
+    console.log("Calculated totalDistances:", totalDistances);
+    if (totalDistances.length > 0) {{
+        setTimeout(() => {{
+            console.log("Sending distances to parent:", totalDistances);
             window.postMessage({{ type: 'distanceUpdate', distances: totalDistances }}, '*');
-        }} else {{
-            console.log("No distances to send.");
+        }}, 500);  // Added a 500ms delay to ensure feature is processed before sending.
+    }} else {{
+        console.log("No distances to send.");
+    }}
+}}
+
+// Ensure event listener for message is only added once.
+if (!distanceListenerAdded) {{
+    window.addEventListener('message', (event) => {{
+        if (event.data.type === 'distanceUpdate') {{
+            console.log("Received distances from the map:", event.data.distances);
+            window.distanceData = event.data.distances;  // Store the received data globally
         }}
+    }});
+    distanceListenerAdded = true;  // Prevent adding multiple listeners.
+    console.log("Distance event listener added.");
+ }} else {{
+    console.log("Event listener already exists.");
+ }}
+
+// Add this function to return distances or null if not available.
+(() => {{
+    if (window.distanceData && window.distanceData.length > 0) {{
+        console.log("Returning distanceData to Python:", window.distanceData);
+        return window.distanceData;
+     }} else {{
+        console.log("No distanceData available to return.");
+        return null;
      }}
+}})();
+
      
     function updateMeasurements(e) {{
         const data = Draw.getAll();
@@ -358,33 +388,28 @@ components.html(mapbox_map_html, height=600)
 
 distance_value_script = """
 (() => {
-    // Ensure that the event listener is registered globally only once
+    // Ensure the event listener is only added once
     if (!window.distanceListenerAdded) {
         window.addEventListener('message', (event) => {
             if (event.data.type === 'distanceUpdate') {
-                console.log("Received distances from the map: ", event.data.distances);
+                console.log("Received distances from the map:", event.data.distances);
                 window.distanceData = event.data.distances;  // Store the received data globally
             }
         });
         window.distanceListenerAdded = true;  // Prevent adding multiple listeners
         console.log("Distance event listener added.");
-    } else {
-        console.log("Event listener already exists.");
     }
 
     // Return the distance data immediately if available
     if (window.distanceData && window.distanceData.length > 0) {
-        console.log("Returning distanceData to Python:", window.distanceData);
         return window.distanceData;
     } else {
-        console.log("No distanceData available to return.");
-        return null;
+        return null;  // Return null if no data available yet
     }
 })();
 """
 
 distanceValue = stjs(distance_value_script)
-
 
 if distanceValue is None or not isinstance(distanceValue, list) or len(distanceValue) == 0:
     st.warning("No distances received yet. There may be an issue with JavaScript messaging.")
@@ -408,6 +433,7 @@ else:
         st.write("Debug Info: distanceValue =", distanceValue)
 
 
+
 if distanceValue:
     try:
         # Update session state with the new distances
@@ -427,12 +453,13 @@ else:
 
 # Function to get the distance value from session state
 def get_distance_value():
-    # Fetch the distance value from session state, or return None if not available
-    if 'line_distances' in st.session_state and isinstance(st.session_state['line_distances'], list):
+    # Fetch the distance value from session state, or set to 0 if not available
+    if 'line_distances' in st.session_state and st.session_state['line_distances']:
         distanceValue = sum(st.session_state['line_distances'])  # Sum of all line distances in meters
         return distanceValue
     else:
         return None  # Return None if distance is not available
+
 
 # Handle received distance data
 if distanceValue:
@@ -684,7 +711,7 @@ def pipe_main():
         distanceValue = get_distance_value()
 
         # Display a warning message if no distance value is available
-        if distanceValue is None or len(distanceValue) == 0:
+        if distanceValue is None:
             st.warning("No line distances available yet. Please draw lines on the map to proceed.")
         else:
             # Add a button to calculate pipes and cost
@@ -697,6 +724,7 @@ def pipe_main():
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
+
 
 # Run the main function
 pipe_main()
