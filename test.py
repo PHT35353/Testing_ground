@@ -7,10 +7,33 @@ import json
 import streamlit.components.v1 as components
 from streamlit_javascript import st_javascript as stjs 
 import time
+from fastapi import FastAPI
+from pydantic import BaseModel
+import threading
+import uvicorn
 
 # Set up a title for the app
 st.title("Piping tool")
 
+# Create a FastAPI app
+app = FastAPI()
+
+# Define the data model for receiving distance
+class DistanceModel(BaseModel):
+    distance: float
+
+# Define a route to receive the distance value
+@app.post("/send-distance/")
+async def send_distance(data: DistanceModel):
+    st.session_state['line_distance'] = data.distance
+    return {"status": "success"}
+
+# Function to run the FastAPI app using Uvicorn
+def run_api():
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+# Start the FastAPI server in a separate thread
+threading.Thread(target=run_api, daemon=True).start()
 
 # Add instructions and explain color options
 st.markdown("""
@@ -161,44 +184,37 @@ mapbox_map_html = f"""
 
    // Attach the updateMeasurements function to Mapbox draw events
 map.on('draw.create', (e) => {{
-    updateMeasurements();
-    updateSidebarMeasurements(e);
+    const data = Draw.getAll();
+    let totalDistance = 0;
+
+    data.features.forEach((feature) => {{
+        if (feature.geometry.type === 'LineString') {{
+            totalDistance += turf.length(feature, {{ units: 'kilometers' }});
+        }}
+    }});
+
+    // Send the distance to the backend API
+    if (totalDistance > 0) {{
+        fetch("http://localhost:8000/send-distance/", {{
+            method: "POST",
+            headers: {{
+                "Content-Type": "application/json",
+            }},
+            body: JSON.stringify({{ distance: totalDistance }}),
+        }})
+        .then(response => response.json())
+        .then(data => console.log("Distance sent successfully", data))
+        .catch((error) => console.error("Error sending distance", error));
+    }}
 }});
 map.on('draw.update', (e) => {{
-    updateMeasurements();
     updateSidebarMeasurements(e);
 }});
 map.on('draw.delete', (e) => {{
 deleteFeature(e);
 }});  
 
-
-
- // Function to update the distance measurements
-    function updateMeasurements() {{
-        const data = Draw.getAll();
-        let distanceValue = [];
-
-        if (data.features.length > 0) {{
-            data.features.forEach((feature) => {{
-                if (feature.geometry.type === 'LineString') {{
-                    const length = turf.length(feature, {{ units: 'kilometers' }});
-                    distanceValue.push(length);
-                }}
-            }});
-        }}
-
-        // Update the global distance data
-        // Introduce a delay before updating window.distanceData
-        setTimeout(() => {{
-            window.distanceData = distanceValue;
-            console.log("Distance data updated:", window.distanceData);
-        }}, 5000);  // Delay of 500 ms (can be adjusted)
-
-    }}
-
-      
-    function updateSidebarMeasurements(e) {{
+ function updateSidebarMeasurements(e) {{
         const data = Draw.getAll();
         let sidebarContent = "";
         let totalDistances = []; 
@@ -373,8 +389,7 @@ function deleteFeature(e) {{
         console.log(`Feature ${{featureId}} and its color have been removed.`);
     }});
 
-    // Update measurements after deletion
-    updateMeasurements();
+   
     updateSidebarMeasurements(e)
 }}
 
@@ -384,95 +399,21 @@ function deleteFeature(e) {{
 """
 components.html(mapbox_map_html, height=600)
 
-# Function to fetch the distance data from JavaScript using retries
-def get_distance_data_with_retry(max_attempts=5, delay=1):
-    distance_value_script = """
-    (() => {
-        if (window.distanceData && window.distanceData.length > 0) {
-            return window.distanceData;  // Return distance data if available
-        } else {
-            return null;  // If distance data isn't available yet, return null
-        }
-    })();
-    """
-
-    distanceValue = None
-    for attempt in range(max_attempts):
-        distanceValue = stjs(distance_value_script, key=f"distance_fetch_key_{attempt}")
-        if distanceValue and isinstance(distanceValue, list) and len(distanceValue) > 0:
-            return distanceValue
-        else:
-            time.sleep(delay)  # Wait for a short time before trying again
-
-    return None
-
-# Button to get distance data after drawing lines
-if st.button("Get Distance Data from Map"):
-    # Attempt to get the distance data with retries
-    distanceValue = get_distance_data_with_retry()
-
-    # Check if a valid distance value is received
-    if distanceValue:
-        # Update the session state with the new distances
-        st.session_state['line_distances'] = distanceValue
-        st.write(f"Updated Distance in Session State: {st.session_state['line_distances']}")
-    else:
-        st.warning("No distances received after multiple attempts. Please try drawing lines again.")
-
-
-
-
 # Function to get the distance value from session state
 def get_distance_value():
-    # Fetch the distance value from session state, or set to 0 if not available
-    if 'line_distances' in st.session_state and st.session_state['line_distances']:
-        distanceValue = sum(st.session_state['line_distances'])  # Sum of all line distances in meters
-        return distanceValue
-    else:
-        return None  # Return None if distance is not available
-
+    if 'line_distance' in st.session_state:
+        return st.session_state['line_distance']
+    return None
 
 distanceValue = get_distance_value()
 
-if distanceValue is None:
-    st.warning("No distances received after multiple attempts. Please try drawing lines again.")
+if distanceValue is not None:
+    st.write(f"Retrieved Distance Value: {distanceValue} km")
+    # Add your pipe cost calculation logic here
 else:
-    st.write(f"Retrieved Distance Value: {distanceValue} meters")
-    # You can now proceed with the logic to calculate pipe material and cost
+    st.warning("No distances received yet. Please draw lines on the map.")
 
 
-
-
-if distanceValue:
-    try:
-        # Update session state with the new distances
-        if 'line_distances' not in st.session_state:
-            st.session_state['line_distances'] = []
-
-        st.session_state['line_distances'] = distanceValue
-
-        # Confirm that the distance was correctly received
-        st.write(f"Updated Distance in Session State: {st.session_state['line_distances']}")
-
-    except Exception as e:
-        st.error(f"Error processing distance data: {e}")
-else:
-    st.warning("Distance value not received correctly from JavaScript.")
-
-
-# Function to get the distance value from session state
-def get_distance_value():
-    # Fetch the distance value from session state, or set to 0 if not available
-    if 'line_distances' in st.session_state and st.session_state['line_distances']:
-        distanceValue = sum(st.session_state['line_distances'])  # Sum of all line distances in meters
-        return distanceValue
-    else:
-        return None  # Return None if distance is not available
-
-
-# Handle received distance data
-if distanceValue:
-    handle_distance_update(distanceValue)
 # Address search using Mapbox Geocoding API
 if address_search:
     geocode_url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{address_search}.json?access_token={mapbox_access_token}"
@@ -495,6 +436,7 @@ if address_search:
 
 
 
+#the pip price calculation par of the code:
 # Pipe data dictionaries
 B1001_data_dict = {
     'Nominal diameter (inches)': ['0.5', '0.75', '1', '1.5', '2', '3', '4', '5', '6', '8', '10', '12', '14', '16', '20'],
