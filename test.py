@@ -177,13 +177,13 @@ deleteFeature(e);
  // Function to update the distance measurements
     function updateMeasurements() {{
         const data = Draw.getAll();
-        let totalDistance = [];
+        let distanceValue = [];
 
         if (data.features.length > 0) {{
             data.features.forEach((feature) => {{
                 if (feature.geometry.type === 'LineString') {{
                     const length = turf.length(feature, {{ units: 'kilometers' }});
-                    totalDistance.push(length);
+                    distanceValue.push(length);
                 }}
             }});
         }}
@@ -191,7 +191,6 @@ deleteFeature(e);
         // Update the global distance data
         // Introduce a delay before updating window.distanceData
         setTimeout(() => {{
-            let distanceValue = totalDistance;
             window.distanceData = distanceValue;
             console.log("Distance data updated:", window.distanceData);
         }}, 5000);  // Delay of 500 ms (can be adjusted)
