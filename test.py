@@ -31,6 +31,10 @@ This tool allows you to:
 # Sidebar to manage the map interactions
 st.sidebar.title("Map Controls")
 
+# Add radio button to choose between total distance or individual lines
+distance_mode = st.sidebar.radio("Distance Mode", options=["Total Distance", "Individual Lines"])
+
+
 # Default location set to Amsterdam, Netherlands
 default_location = [52.3676, 4.9041]
 
@@ -47,6 +51,19 @@ if st.sidebar.button("Search Location"):
 
 # Mapbox GL JS API token
 mapbox_access_token = "pk.eyJ1IjoicGFyc2ExMzgzIiwiYSI6ImNtMWRqZmZreDB6MHMyaXNianJpYWNhcGQifQ.hot5D26TtggHFx9IFM-9Vw"
+
+# Function to save a copy of the map and sidebar as an HTML file
+def save_map():
+    st.download_button(
+        label="Download Map and Measurements",
+        data=mapbox_html,
+        file_name="saved_map.html",
+        mime="text/html"
+    )
+
+# Button to save the map
+if st.sidebar.button("Save Map"):
+    save_map()
 
 # HTML and JS for Mapbox with Mapbox Draw plugin to add drawing functionalities
 mapbox_map_html = f"""
@@ -188,12 +205,28 @@ map.on('draw.create', (e) => {{
     }}
     updateSidebarMeasurements(e)
 }});
+
 map.on('draw.update', (e) => {{
     updateSidebarMeasurements(e);
 }});
+
+// Handle deletion of features and update the backend
 map.on('draw.delete', (e) => {{
-deleteFeature(e);
-}});  
+    const features = e.features;
+    features.forEach((feature) => {{
+        if (feature.geometry.type === 'LineString') {{
+            // Send delete request to FastAPI for this line
+            fetch(`https://fastapi-test-production-b351.up.railway.app/delete-distance/${{feature.id}}`, {{
+                method: "DELETE"
+            }})
+            .then(response => response.json())
+            .then(data => console.log("Distance deleted successfully", data))
+            .catch((error) => console.error("Error deleting distance", error));
+        }}
+    }});
+    deleteFeature(e);
+}});
+
 
  function updateSidebarMeasurements(e) {{
         const data = Draw.getAll();
@@ -646,29 +679,40 @@ def get_distance_value():
 # Main function to run the app
 def pipe_main():
     st.title("Pipe Selection Tool")
+    distance_data = get_distance_data()  # Fetch all line distances from the backend
 
-    try:
-        # Get the inputs from the user
-        pressure = st.number_input("Enter the pressure (bar):", min_value=0.0, format="%.2f")
-        temperature = st.number_input("Enter the temperature (°C):", min_value=0.0, format="%.2f")
-        medium = st.text_input("Enter the medium:")
+    if not distance_data:
+        st.warning("No line distances available yet. Please draw lines on the map to proceed.")
+    else:
+        st.write(f"Distances received: {distance_data}")
 
-        # Wait until the distance value is available
-        distanceValue = get_distance_value()
+        # Handle selection between Total Distance and Individual Lines
+        if distance_mode == "Total Distance":
+            total_distance = sum(distance_data.values())  # Calculate total distance
+            st.write(f"Total Distance: {total_distance:.2f} km")
 
-        # Display a warning message if no distance value is available
-        if distanceValue is None:
-            st.warning("No line distances available yet. Please draw lines on the map to proceed.")
-        else:
-            # Add a button to calculate pipes and cost
-            if st.button("Find Pipes"):
-                st.write(f"Distance received: {distanceValue} km")
-                # Choose the pipe material based on the inputs
+            # Button to calculate pipes for total distance
+            if st.button("Find Pipes for Total Distance"):
+                pressure = st.number_input("Enter the pressure (bar):", min_value=0.0, format="%.2f")
+                temperature = st.number_input("Enter the temperature (°C):", min_value=0.0, format="%.2f")
+                medium = st.text_input("Enter the medium:")
                 pipe_material = choose_pipe_material(pressure, temperature, medium)
                 st.write(f"Selected Pipe Material: {pipe_material}")
+                Pipe_finder(pipe_material, pressure, total_distance)
 
-                # Display the pipe options and cost for the selected material and conditions
-                Pipe_finder(pipe_material, pressure, distanceValue)
+        elif distance_mode == "Individual Lines":
+            # Loop through each individual line
+            for line_id, distance in distance_data.items():
+                st.write(f"Line ID {line_id}: {distance:.2f} km")
+                if st.button(f"Find Pipes for Line {line_id}"):
+                    # Get individual inputs for pressure, temperature, and medium
+                    pressure = st.number_input("Enter the pressure (bar):", min_value=0.0, format="%.2f", key=f"pressure_{line_id}")
+                    temperature = st.number_input("Enter the temperature (°C):", min_value=0.0, format="%.2f", key=f"temperature_{line_id}")
+                    medium = st.text_input("Enter the medium:", key=f"medium_{line_id}")
+                    pipe_material = choose_pipe_material(pressure, temperature, medium)
+                    st.write(f"Selected Pipe Material: {pipe_material}")
+                    Pipe_finder(pipe_material, pressure, distance)
+
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
