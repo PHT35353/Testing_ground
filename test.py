@@ -56,7 +56,7 @@ mapbox_access_token = "pk.eyJ1IjoicGFyc2ExMzgzIiwiYSI6ImNtMWRqZmZreDB6MHMyaXNian
 def save_map():
     st.download_button(
         label="Download Map and Measurements",
-        data=mapbox_html,
+        data= mapbox_map_html,
         file_name="saved_map.html",
         mime="text/html"
     )
