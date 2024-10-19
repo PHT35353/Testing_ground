@@ -172,27 +172,32 @@ map.on('draw.delete', (e) => {{
 deleteFeature(e);
 }});  
 
-
+let lineMeasurements = {{}};
 
  // Function to update the distance measurements
     function updateMeasurements() {{
         const data = Draw.getAll();
-        let totalDistances = [];
+        let totalDistance = [];
 
         if (data.features.length > 0) {{
             data.features.forEach((feature) => {{
                 if (feature.geometry.type === 'LineString') {{
                     const length = turf.length(feature, {{ units: 'kilometers' }});
-                    totalDistances.push(length);
+                    totalDistance.push(length);
+                    lineMeasurements[feature.id] = length;
                 }}
             }});
         }}
-
         // Update the global distance data
-        window.distanceData = totalDistances;
-        console.log("Distance data updated:", window.distanceData);
-        console.log("Fetching distance data:", window.distanceData);
-
+        // Introduce a delay before updating window.distanceData
+        setTimeout(() => {{
+            window.distanceData = Object.values(lineMeasurements);
+            console.log("Distance data updated:", window.distanceData);
+        }}, 1000); // Add a 1-second delay before updating the global distance data
+        // Function to get distance data when requested
+        function getDistanceData() {{
+            return window.distanceData ? window.distanceData : [];
+        }}
     }}
 
       
@@ -240,6 +245,7 @@ deleteFeature(e);
                             'line-width': 4
                         }}
                     }});
+                    
 
                     let distanceUnit = length >= 1 ? 'km' : 'm';
                     let distanceValue = length >= 1 ? length.toFixed(2) : (length * 1000).toFixed(2);
@@ -368,7 +374,7 @@ function deleteFeature(e) {{
             map.removeSource('marker-' + featureId);
         }}
 
-        console.log(Feature ${{featureId}} and its color have been removed.);
+        console.log(`Feature ${{featureId}} and its color have been removed.`);
     }});
 
     // Update measurements after deletion
@@ -382,32 +388,40 @@ function deleteFeature(e) {{
 """
 components.html(mapbox_map_html, height=600)
 
-# Button to get distance data after drawing lines
-if st.button("Get Distance Data from Map"):
-    # Add a delay before fetching the distance data to ensure JavaScript finishes updating data
-    time.sleep(1)  # Wait for 1 second
-
-    # Define the JavaScript script to fetch the distance data
+if st.sidebar.button("Get Line Measurements"):
+    # JavaScript script to call the getDistanceData function
     distance_value_script = """
     (() => {
-        if (window.distanceData && window.distanceData.length > 0) {
-            return window.distanceData;  // Return distance data if available
-        } else {
-            return null;  // If distance data isn't available yet, return null
-        }
+        return getDistanceData();
     })();
     """
-    
-    # Fetch distance data from JavaScript using stjs
-    distanceValue = stjs(distance_value_script, key="distance_fetch_key")
+
+    # Execute JavaScript and retrieve the distance data
+    distanceValue = stjs(distance_value_script, key="distance_data_fetch")
 
     # Check if a valid distance value is received
     if distanceValue and isinstance(distanceValue, list) and len(distanceValue) > 0:
+        st.session_state['line_distances'] = distanceValue
+        st.sidebar.write("Line Measurements:")
+        for i, distance in enumerate(distanceValue):
+            st.sidebar.write(f"Line {i + 1}: {distance:.2f} km")
+    else:
+        st.sidebar.warning("No distances received. Please draw lines on the map and try again.")
+
+
+# Button to get distance data after drawing lines
+if st.button("Get Distance Data from Map"):
+    # Attempt to get the distance data with retries
+    distanceValue = get_distance_data_with_retry()
+
+    # Check if a valid distance value is received
+    if distanceValue:
         # Update the session state with the new distances
         st.session_state['line_distances'] = distanceValue
         st.write(f"Updated Distance in Session State: {st.session_state['line_distances']}")
     else:
-        st.warning("No distances received. Please draw lines on the map and try again.")
+        st.warning("No distances received after multiple attempts. Please try drawing lines again.")
+
 
 
 
