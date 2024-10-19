@@ -696,7 +696,7 @@ def get_distance_value():
 # Main function to run the app
 def pipe_main():
     st.title("Pipe Selection Tool")
-    distance_data = get_distance_data()  # Fetch all line distances from the backend
+    distance_data = get_distances_value()  # Fetch all line distances from the backend
 
     if not distance_data:
         st.warning("No line distances available yet. Please draw lines on the map to proceed.")
@@ -729,6 +729,7 @@ def pipe_main():
                     pipe_material = choose_pipe_material(pressure, temperature, medium)
                     st.write(f"Selected Pipe Material: {pipe_material}")
                     Pipe_finder(pipe_material, pressure, distance)
+
 
 # Run the main function
 pipe_main()
