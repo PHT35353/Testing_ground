@@ -45,10 +45,6 @@ longitude = st.sidebar.number_input("Longitude", value=default_location[1])
 # Search bar for address search
 address_search = st.sidebar.text_input("Search for address (requires internet connection)")
 
-# Button to search for a location
-if st.sidebar.button("Search Location"):
-    default_location = [latitude, longitude]
-
 # Mapbox GL JS API token
 mapbox_access_token = "pk.eyJ1IjoicGFyc2ExMzgzIiwiYSI6ImNtMWRqZmZreDB6MHMyaXNianJpYWNhcGQifQ.hot5D26TtggHFx9IFM-9Vw"
 
@@ -187,29 +183,25 @@ mapbox_map_html = f"""
    // Attach the updateMeasurements function to Mapbox draw events
 map.on('draw.create', (e) => {{
     const data = Draw.getAll();
-    let totalDistance = 0;
-
     data.features.forEach((feature) => {{
         if (feature.geometry.type === 'LineString') {{
-            totalDistance += turf.length(feature, {{ units: 'kilometers' }});
+            const length = turf.length(feature, {{ units: 'kilometers' }});
+            // Send the distance and feature ID to the backend API
+            fetch("https://fastapi-test-production-b351.up.railway.app/send-distance/", {{
+                method: "POST",
+                headers: {{
+                    "Content-Type": "application/json",
+                }},
+                body: JSON.stringify({{ line_id: feature.id, distance: length }}),
+            }})
+            .then(response => response.json())
+            .then(data => console.log("Distance sent successfully", data))
+            .catch((error) => console.error("Error sending distance", error));
         }}
     }});
-
-    // Send the distance to the backend API
-    if (totalDistance > 0) {{
-        fetch("https://fastapi-test-production-b351.up.railway.app/send-distance/", {{
-            method: "POST",
-            headers: {{
-                "Content-Type": "application/json",
-            }},
-            body: JSON.stringify({{ distance: totalDistance }}),
-        }})
-        .then(response => response.json())
-        .then(data => console.log("Distance sent successfully", data))
-        .catch((error) => console.error("Error sending distance", error));
-    }}
-    updateSidebarMeasurements(e)
+    updateSidebarMeasurements(e);
 }});
+
 
 map.on('draw.update', (e) => {{
     updateSidebarMeasurements(e);
@@ -231,6 +223,25 @@ map.on('draw.delete', (e) => {{
     }});
     deleteFeature(e);
 }});
+
+map.on('load', () => {{
+    // Fetch previously saved distances from FastAPI
+    fetch("https://fastapi-test-production-b351.up.railway.app/get-distances/")
+    .then(response => response.json())
+    .then(data => {{
+        const distances = data.distances;
+        Object.keys(distances).forEach(line_id => {{
+            const distance = distances[line_id];
+            // Here, recreate the features with the distances received
+            // This can be extended to recreate the full LineString if coordinates are also saved
+            console.log(`Restored line ${{line_id}} with distance: ${{distance}}`);
+            // Add your logic here to redraw lines if possible
+        }});
+    }})
+    .catch((error) => console.error("Error loading saved distances", error));
+    updateSidebarMeasurements(e);
+}});
+
 
 
  function updateSidebarMeasurements(e) {{
@@ -418,10 +429,8 @@ function deleteFeature(e) {{
 """
 components.html(mapbox_map_html, height=600)
 
-# Address search using Mapbox Geocoding API
-if address_search:
+if st.sidebar.button("Search Location"):
     geocode_url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{address_search}.json?access_token={mapbox_access_token}"
-    # Request the geocoded location
     try:
         response = requests.get(geocode_url)
         if response.status_code == 200:
@@ -431,6 +440,9 @@ if address_search:
                 latitude, longitude = coordinates[1], coordinates[0]
                 st.sidebar.success(f"Address found: {geo_data['features'][0]['place_name']}")
                 st.sidebar.write(f"Coordinates: Latitude {latitude}, Longitude {longitude}")
+                default_location = [latitude, longitude]
+                # Set the new center for the map to zoom in closely
+                mapbox_map_html = mapbox_map_html.replace("{latitude}", str(latitude)).replace("{longitude}", str(longitude)).replace("zoom: 13", "zoom: 18")
             else:
                 st.sidebar.error("Address not found.")
         else:
@@ -438,18 +450,15 @@ if address_search:
     except Exception as e:
         st.sidebar.error(f"Error: {e}")
 
-# Function to save a copy of the map and sidebar as an HTML file
+
+#Function to save a copy of the map and sidebar as an HTML file
 def save_map():
     st.download_button(
         label="Download Map and Measurements",
-        data= mapbox_map_html,
-        file_name="saved_map.html",
+        data=mapbox_map_html,
+        file_name="saved_map_with_drawings.html",
         mime="text/html"
-    )
-
-# Button to save the map
-if st.sidebar.button("Save Map"):
-    save_map()
+    
 
 
 #the pip price calculation par of the code:
