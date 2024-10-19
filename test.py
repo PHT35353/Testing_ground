@@ -65,6 +65,23 @@ def save_map():
 if st.sidebar.button("Save Map"):
     save_map()
 
+# Function to get the distance values from FastAPI with retries
+def get_distances_value():
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = requests.get("https://fastapi-test-production-b351.up.railway.app/get-distances/")
+            if response.status_code == 200:
+                data = response.json()
+                distances = data.get("distances", {})
+                return distances
+            else:
+                st.error(f"Failed to fetch distances. Status code: {response.status_code}. Retrying...")
+        except requests.exceptions.RequestException as e:
+            st.error(f"Error fetching distances: {e}. Retrying...")
+    st.error("Failed to fetch distances from FastAPI server after multiple attempts.")
+    return {}
+
 # HTML and JS for Mapbox with Mapbox Draw plugin to add drawing functionalities
 mapbox_map_html = f"""
 <!DOCTYPE html>
