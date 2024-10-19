@@ -52,14 +52,6 @@ if st.sidebar.button("Search Location"):
 # Mapbox GL JS API token
 mapbox_access_token = "pk.eyJ1IjoicGFyc2ExMzgzIiwiYSI6ImNtMWRqZmZreDB6MHMyaXNianJpYWNhcGQifQ.hot5D26TtggHFx9IFM-9Vw"
 
-# Function to save a copy of the map and sidebar as an HTML file
-def save_map():
-    st.download_button(
-        label="Download Map and Measurements",
-        data= mapbox_map_html,
-        file_name="saved_map.html",
-        mime="text/html"
-    )
 
 # Button to save the map
 if st.sidebar.button("Save Map"):
@@ -449,6 +441,15 @@ if address_search:
             st.sidebar.error("Error connecting to the Mapbox API.")
     except Exception as e:
         st.sidebar.error(f"Error: {e}")
+
+# Function to save a copy of the map and sidebar as an HTML file
+def save_map():
+    st.download_button(
+        label="Download Map and Measurements",
+        data= mapbox_map_html,
+        file_name="saved_map.html",
+        mime="text/html"
+    )
 
 
 
