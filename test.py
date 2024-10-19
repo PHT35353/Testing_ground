@@ -175,7 +175,7 @@ map.on('draw.create', (e) => {{
 
     // Send the distance to the backend API
     if (totalDistance > 0) {{
-        fetch("https://fastapi-test-production-b351.up.railway.app/send-distance/", {{
+        fetch("https://fastapi-test-production-b351.up.railway.app/", {{
             method: "POST",
             headers: {{
                 "Content-Type": "application/json",
@@ -607,10 +607,25 @@ def get_user_inputs():
 
     return pressure, temperature, medium
 
+# Function to check if FastAPI server is running
+def check_server_status():
+    try:
+        response = requests.get("https://fastapi-test-production-b351.up.railway.app/")
+        if response.status_code == 200:
+            return True
+        else:
+            st.error(f"Server is not available. Status code: {response.status_code}")
+            return False
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error connecting to FastAPI server: {e}")
+        return False
+
 # Function to get the distance value from FastAPI with retries
 def get_distance_value():
     max_retries = 3
     for attempt in range(max_retries):
+        if not check_server_status():
+            break
         try:
             response = requests.get("https://fastapi-test-production-b351.up.railway.app/get-distance/")
             if response.status_code == 200:
@@ -626,6 +641,7 @@ def get_distance_value():
             st.error(f"Error fetching distance: {e}. Retrying...")
     st.error("Failed to fetch distance from FastAPI server after multiple attempts.")
     return None
+
 
 # Main function to run the app
 def pipe_main():
