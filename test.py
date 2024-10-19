@@ -15,26 +15,6 @@ import uvicorn
 # Set up a title for the app
 st.title("Piping tool")
 
-# Create a FastAPI app
-app = FastAPI()
-
-# Define the data model for receiving distance
-class DistanceModel(BaseModel):
-    distance: float
-
-# Define a route to receive the distance value
-@app.post("/send-distance/")
-async def send_distance(data: DistanceModel):
-    st.session_state['line_distance'] = data.distance
-    return {"status": "success"}
-
-# Function to run the FastAPI app using Uvicorn
-def run_api():
-    uvicorn.run(app, host="0.0.0.0", port=8000)
-
-# Start the FastAPI server in a separate thread
-threading.Thread(target=run_api, daemon=True).start()
-
 # Add instructions and explain color options
 st.markdown("""
 This tool allows you to:
@@ -195,7 +175,7 @@ map.on('draw.create', (e) => {{
 
     // Send the distance to the backend API
     if (totalDistance > 0) {{
-        fetch("http://localhost:8000/send-distance/", {{
+        fetch("fastapi-test-production-b351.up.railway.app", {{
             method: "POST",
             headers: {{
                 "Content-Type": "application/json",
@@ -399,21 +379,6 @@ function deleteFeature(e) {{
 </html>
 """
 components.html(mapbox_map_html, height=600)
-
-# Function to get the distance value from session state
-def get_distance_value():
-    if 'line_distance' in st.session_state:
-        return st.session_state['line_distance']
-    return None
-
-distanceValue = get_distance_value()
-
-if distanceValue is not None:
-    st.write(f"Retrieved Distance Value: {distanceValue} km")
-    # Add your pipe cost calculation logic here
-else:
-    st.warning("No distances received yet. Please draw lines on the map.")
-
 
 # Address search using Mapbox Geocoding API
 if address_search:
