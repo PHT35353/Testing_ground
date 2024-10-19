@@ -175,7 +175,7 @@ map.on('draw.create', (e) => {{
 
     // Send the distance to the backend API
     if (totalDistance > 0) {{
-        fetch("fastapi-test-production-b351.up.railway.app", {{
+        fetch("https://fastapi-test-production-b351.up.railway.app/send-distance/", {{
             method: "POST",
             headers: {{
                 "Content-Type": "application/json",
@@ -607,14 +607,19 @@ def get_user_inputs():
 
     return pressure, temperature, medium
 
-# Function to get the distance value from session state
+# Function to get the distance value from FastAPI
 def get_distance_value():
-    # Fetch the distance value from session state, or set to 0 if not available
-    if 'line_distances' in st.session_state and st.session_state['line_distances']:
-        distanceValue = sum(st.session_state['line_distances'])  # Sum of all line distances in meters
-        return distanceValue
-    else:
-        return None  # Return None if distance is not available
+    try:
+        response = requests.get("https://fastapi-test-production-b351.up.railway.app/get-distance/")
+        if response.status_code == 200:
+            data = response.json()
+            return data.get("distance")
+        else:
+            st.error("Failed to fetch distance from FastAPI server.")
+            return None
+    except Exception as e:
+        st.error(f"Error fetching distance: {e}")
+        return None
 
 # Main function to run the app
 def pipe_main():
