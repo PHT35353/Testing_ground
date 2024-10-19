@@ -206,6 +206,7 @@ map.on('draw.create', (e) => {{
         .then(data => console.log("Distance sent successfully", data))
         .catch((error) => console.error("Error sending distance", error));
     }}
+    updateSidebarMeasurements(e)
 }});
 map.on('draw.update', (e) => {{
     updateSidebarMeasurements(e);
