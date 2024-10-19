@@ -713,9 +713,5 @@ def pipe_main():
                     st.write(f"Selected Pipe Material: {pipe_material}")
                     Pipe_finder(pipe_material, pressure, distance)
 
-
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
-
 # Run the main function
 pipe_main()
