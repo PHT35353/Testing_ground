@@ -654,7 +654,7 @@ def pipe_main():
         medium = st.text_input("Enter the medium:")
 
         # Wait until the distance value is available
-        distance_value = get_distance_value()
+        distanceValue = get_distance_value()
 
         # Display a warning message if no distance value is available
         if distance_value is None:
@@ -662,7 +662,7 @@ def pipe_main():
         else:
             # Add a button to calculate pipes and cost
             if st.button("Find Pipes"):
-                st.write(f"Distance received: {distance_value} km")
+                st.write(f"Distance received: {distanceValue} km")
                 # Here, add your pipe calculation logic using `distance_value`, `pressure`, `temperature`, `medium`.
 
     except Exception as e:
