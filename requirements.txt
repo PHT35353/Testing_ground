@@ -2,4 +2,6 @@ streamlit
 streamlit-javascript
 pandas
 requests
-turfpy
+fastapi
+uvicorn
+pydantic
