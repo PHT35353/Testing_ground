@@ -458,7 +458,7 @@ def save_map():
         data=mapbox_map_html,
         file_name="saved_map_with_drawings.html",
         mime="text/html"
-    
+    )
 
 
 #the pip price calculation par of the code:
