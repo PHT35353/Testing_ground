@@ -175,7 +175,7 @@ map.on('draw.create', (e) => {{
 
     // Send the distance to the backend API
     if (totalDistance > 0) {{
-        fetch("https://fastapi-test-production-b351.up.railway.app/", {{
+        fetch("https://fastapi-test-production-b351.up.railway.app/send-distance/", {{
             method: "POST",
             headers: {{
                 "Content-Type": "application/json",
