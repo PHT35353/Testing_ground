@@ -184,21 +184,17 @@ let lineMeasurements = {{}};
                 if (feature.geometry.type === 'LineString') {{
                     const length = turf.length(feature, {{ units: 'kilometers' }});
                     totalDistance.push(length);
-                    lineMeasurements[feature.id] = length;
+                   lineMeasurements[feature.id] = length;
                 }}
             }});
         }}
+
         // Update the global distance data
         // Introduce a delay before updating window.distanceData
-        setTimeout(() => {{
-            window.distanceData = Object.values(lineMeasurements);
+    
+            window.distanceData = lineMeasurments;
             console.log("Distance data updated:", window.distanceData);
-        }}, 1000); // Add a 1-second delay before updating the global distance data
-        // Function to get distance data when requested
-        function getDistanceData() {{
-            return window.distanceData ? window.distanceData : [];
-        }}
-    }}
+     }}
 
       
     function updateSidebarMeasurements(e) {{
@@ -245,7 +241,6 @@ let lineMeasurements = {{}};
                             'line-width': 4
                         }}
                     }});
-                    
 
                     let distanceUnit = length >= 1 ? 'km' : 'm';
                     let distanceValue = length >= 1 ? length.toFixed(2) : (length * 1000).toFixed(2);
@@ -388,26 +383,27 @@ function deleteFeature(e) {{
 """
 components.html(mapbox_map_html, height=600)
 
-if st.sidebar.button("Get Line Measurements"):
-    # JavaScript script to call the getDistanceData function
+# Function to fetch the distance data from JavaScript using retries
+def get_distance_data_with_retry(max_attempts=5, delay=1):
     distance_value_script = """
-    (() => {
-        return getDistanceData();
-    })();
+    (() => {{
+        if (window.distanceData && window.distanceData.length > 0) {{
+            return window.distanceData;  // Return distance data if available
+        }} else {{
+            return null;  // If distance data isn't available yet, return null
+        }}
+    }})();
     """
 
-    # Execute JavaScript and retrieve the distance data
-    distanceValue = stjs(distance_value_script, key="distance_data_fetch")
+    distanceValue = None
+    for attempt in range(max_attempts):
+        distanceValue = stjs(distance_value_script, key=f"distance_fetch_key_{attempt}")
+        if distanceValue and isinstance(distanceValue, list) and len(distanceValue) > 0:
+            return distanceValue
+        else:
+            time.sleep(delay)  # Wait for a short time before trying again
 
-    # Check if a valid distance value is received
-    if distanceValue and isinstance(distanceValue, list) and len(distanceValue) > 0:
-        st.session_state['line_distances'] = distanceValue
-        st.sidebar.write("Line Measurements:")
-        for i, distance in enumerate(distanceValue):
-            st.sidebar.write(f"Line {i + 1}: {distance:.2f} km")
-    else:
-        st.sidebar.warning("No distances received. Please draw lines on the map and try again.")
-
+    return None
 
 # Button to get distance data after drawing lines
 if st.button("Get Distance Data from Map"):
