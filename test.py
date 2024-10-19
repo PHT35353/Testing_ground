@@ -613,13 +613,18 @@ def get_distance_value():
         response = requests.get("https://fastapi-test-production-b351.up.railway.app/get-distance/")
         if response.status_code == 200:
             data = response.json()
-            return data.get("distance")
+            distance = data.get("distance")
+            if distance is not None:
+                return distance
+            else:
+                st.warning("Distance value is not yet available.")
         else:
-            st.error("Failed to fetch distance from FastAPI server.")
+            st.error("Failed to fetch distance from FastAPI server. Status code: {}".format(response.status_code))
             return None
-    except Exception as e:
+    except requests.exceptions.RequestException as e:
         st.error(f"Error fetching distance: {e}")
         return None
+
 
 # Main function to run the app
 def pipe_main():
