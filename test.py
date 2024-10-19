@@ -53,10 +53,6 @@ if st.sidebar.button("Search Location"):
 mapbox_access_token = "pk.eyJ1IjoicGFyc2ExMzgzIiwiYSI6ImNtMWRqZmZreDB6MHMyaXNianJpYWNhcGQifQ.hot5D26TtggHFx9IFM-9Vw"
 
 
-# Button to save the map
-if st.sidebar.button("Save Map"):
-    save_map()
-
 # Function to get the distance values from FastAPI with retries
 def get_distances_value():
     max_retries = 3
@@ -451,6 +447,9 @@ def save_map():
         mime="text/html"
     )
 
+# Button to save the map
+if st.sidebar.button("Save Map"):
+    save_map()
 
 
 #the pip price calculation par of the code:
