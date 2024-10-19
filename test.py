@@ -607,24 +607,25 @@ def get_user_inputs():
 
     return pressure, temperature, medium
 
-# Function to get the distance value from FastAPI
+# Function to get the distance value from FastAPI with retries
 def get_distance_value():
-    try:
-        response = requests.get("https://fastapi-test-production-b351.up.railway.app/get-distance/")
-        if response.status_code == 200:
-            data = response.json()
-            distance = data.get("distance")
-            if distance is not None:
-                return distance
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = requests.get("https://fastapi-test-production-b351.up.railway.app/get-distance/")
+            if response.status_code == 200:
+                data = response.json()
+                distance = data.get("distance")
+                if distance is not None:
+                    return distance
+                else:
+                    st.warning("Distance value is not yet available.")
             else:
-                st.warning("Distance value is not yet available.")
-        else:
-            st.error("Failed to fetch distance from FastAPI server. Status code: {}".format(response.status_code))
-            return None
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error fetching distance: {e}")
-        return None
-
+                st.error(f"Failed to fetch distance. Status code: {response.status_code}. Retrying...")
+        except requests.exceptions.RequestException as e:
+            st.error(f"Error fetching distance: {e}. Retrying...")
+    st.error("Failed to fetch distance from FastAPI server after multiple attempts.")
+    return None
 
 # Main function to run the app
 def pipe_main():
@@ -632,26 +633,24 @@ def pipe_main():
 
     try:
         # Get the inputs from the user
-        P, T, M = get_user_inputs()
+        pressure = st.number_input("Enter the pressure (bar):", min_value=0.0, format="%.2f")
+        temperature = st.number_input("Enter the temperature (°C):", min_value=0.0, format="%.2f")
+        medium = st.text_input("Enter the medium:")
 
         # Wait until the distance value is available
-        distanceValue = get_distance_value()
+        distance_value = get_distance_value()
 
         # Display a warning message if no distance value is available
-        if distanceValue is None:
+        if distance_value is None:
             st.warning("No line distances available yet. Please draw lines on the map to proceed.")
         else:
             # Add a button to calculate pipes and cost
             if st.button("Find Pipes"):
-                Pipe_Material = choose_pipe_material(P, T, M)  # Choose the pipe material based on the inputs
-                st.write(f"Selected Pipe Material: {Pipe_Material}")
-
-                # Use the entered distance in the pipe finding and cost calculation
-                Pipe_finder(Pipe_Material, P, distanceValue)
+                st.write(f"Distance received: {distance_value} km")
+                # Here, add your pipe calculation logic using `distance_value`, `pressure`, `temperature`, `medium`.
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
-
 
 # Run the main function
 pipe_main()
