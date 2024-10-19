@@ -172,7 +172,7 @@ map.on('draw.delete', (e) => {{
 deleteFeature(e);
 }});  
 
-let lineMeasurements = {{}};
+
 
  // Function to update the distance measurements
     function updateMeasurements() {{
@@ -184,17 +184,19 @@ let lineMeasurements = {{}};
                 if (feature.geometry.type === 'LineString') {{
                     const length = turf.length(feature, {{ units: 'kilometers' }});
                     totalDistance.push(length);
-                   lineMeasurements[feature.id] = length;
                 }}
             }});
         }}
 
         // Update the global distance data
         // Introduce a delay before updating window.distanceData
-    
-            window.distanceData = lineMeasurments;
+        setTimeout(() => {{
+            let distanceValue = totalDistance;
+            window.distanceData = distanceValue;
             console.log("Distance data updated:", window.distanceData);
-     }}
+        }}, 5000);  // Delay of 500 ms (can be adjusted)
+
+    }}
 
       
     function updateSidebarMeasurements(e) {{
@@ -386,13 +388,13 @@ components.html(mapbox_map_html, height=600)
 # Function to fetch the distance data from JavaScript using retries
 def get_distance_data_with_retry(max_attempts=5, delay=1):
     distance_value_script = """
-    (() => {{
-        if (window.distanceData && window.distanceData.length > 0) {{
+    (() => {
+        if (window.distanceData && window.distanceData.length > 0) {
             return window.distanceData;  // Return distance data if available
-        }} else {{
+        } else {
             return null;  // If distance data isn't available yet, return null
-        }}
-    }})();
+        }
+    })();
     """
 
     distanceValue = None
