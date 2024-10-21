@@ -5,7 +5,7 @@ import math
 import requests
 import json
 import streamlit.components.v1 as components
-from streamlit_javascript import st_javascript as stjs
+from streamlit_javascript import st_javascript as stjs 
 import time
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -193,12 +193,12 @@ map.on('draw.update', (e) => {{
 }});
 map.on('draw.delete', (e) => {{
 deleteFeature(e);
-}});
+}});  
 
  function updateSidebarMeasurements(e) {{
         const data = Draw.getAll();
         let sidebarContent = "";
-        let totalDistances = [];
+        let totalDistances = []; 
         if (data.features.length > 0) {{
             const features = data.features;
             features.forEach(function (feature, index) {{
@@ -222,7 +222,7 @@ deleteFeature(e);
                         featureColors[feature.id] = lineColor || 'blue';
                     }}
 
-
+                    
                     // Update the feature's source when it's moved to ensure the color moves with it
                     map.getSource('line-' + feature.id)?.setData(feature);
 
@@ -242,7 +242,7 @@ deleteFeature(e);
 
                     let distanceUnit = length >= 1 ? 'km' : 'm';
                     let distanceValue = length >= 1 ? length.toFixed(2) : (length * 1000).toFixed(2);
-
+                    
 
                     sidebarContent += '<p>Line ' + featureNames[feature.id] + ' belongs to ' + (startLandmark?.properties.name || 'Unknown') + ' - ' + (endLandmark?.properties.name || 'Unknown') + ': ' + distanceValue + ' ' + distanceUnit + '</p>';
                 }} else if (feature.geometry.type === 'Polygon') {{
@@ -329,7 +329,7 @@ deleteFeature(e);
         }}
         document.getElementById('measurements').innerHTML = sidebarContent;
    }}
-
+    
     function toggleSidebar() {{
         var sidebar = document.getElementById('sidebar');
         if (sidebar.classList.contains('collapsed')) {{
@@ -370,7 +370,7 @@ function deleteFeature(e) {{
         console.log(Feature ${{featureId}} and its color have been removed.);
     }});
 
-
+   
     updateSidebarMeasurements(e)
 }}
 
@@ -489,7 +489,7 @@ def B1001_filter(P, distanceValue):
                 'External diameter (mm)': B1001_data_dict['External diameter (mm)'][i],
                 'Wall thickness (mm)': B1001_data_dict['Wall thickness (mm)'][i],
                 'Cost per m (Euro)': B1001_data_dict['Cost per m (Euro)'][i],
-                'Total Cost (Euro)': B1001_data_dict['Total Cost (Euro)'][i]
+                'Total Cost (Euro)': B1001_data_dict['Total Cost (Euro)'][i] 
             })
 
     if not available_pipes:
@@ -505,10 +505,10 @@ def B1003_filter(P, distanceValue):
     B1003_data_dict['Wall thickness (mm)'] = list(map(float, B1003_data_dict['Wall thickness (mm)']))
     B1003_data_dict['Cost per 100 m (Euro)'] = list(map(float, B1003_data_dict['Cost per 100 m (Euro)']))
     B1003_data_dict['Pressure (bar)'] = list(map(float, B1003_data_dict['Pressure (bar)']))
-
+    
     B1003_data_dict['Cost per m (Euro)'] = [cost / 100 for cost in B1003_data_dict['Cost per 100 m (Euro)']]
     B1003_data_dict['Total Cost (Euro)'] = [p * distanceValue for p in B1003_data_dict['Cost per m (Euro)']]
-
+    
     available_pipes = []
     for i in range(len(B1003_data_dict['Pressure (bar)'])):
         if B1003_data_dict['Pressure (bar)'][i] >= P:
