@@ -175,7 +175,7 @@ map.on('draw.create', (e) => {{
 
     // Send the distance to the backend API
     if (totalDistance > 0) {{
-        fetch("https://fastapi-test-production-1ba4.up.railway.app/", {{
+        fetch("https://fastapi-test-production-1ba4.up.railway.app/send-distance/", {{
             method: "POST",
             headers: {{
                 "Content-Type": "application/json",
@@ -367,7 +367,7 @@ function deleteFeature(e) {{
             map.removeSource('marker-' + featureId);
         }}
 
-        console.log(Feature ${{featureId}} and its color have been removed.);
+        console.log(`Feature ${{featureId}} and its color have been removed.`);
     }});
 
    
@@ -610,7 +610,7 @@ def get_user_inputs():
 # Function to check if FastAPI server is running
 def check_server_status():
     try:
-        response = requests.get("https://fastapi-test-production-b351.up.railway.app/")
+        response = requests.get("https://fastapi-test-production-1ba4.up.railway.app/")
         if response.status_code == 200:
             return True
         else:
@@ -627,7 +627,7 @@ def get_distance_value():
         if not check_server_status():
             break
         try:
-            response = requests.get("https://fastapi-test-production-b351.up.railway.app/get-distance/")
+            response = requests.get("https://fastapi-test-production-1ba4.up.railway.app/get-distance/")
             if response.status_code == 200:
                 data = response.json()
                 distance = data.get("distance")
