@@ -5,7 +5,7 @@ import math
 import requests
 import json
 import streamlit.components.v1 as components
-from streamlit_javascript import st_javascript as stjs 
+from streamlit_javascript import st_javascript as stjs
 import time
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -31,10 +31,6 @@ This tool allows you to:
 # Sidebar to manage the map interactions
 st.sidebar.title("Map Controls")
 
-# Add radio button to choose between total distance or individual lines
-distance_mode = st.sidebar.radio("Distance Mode", options=["Total Distance", "Individual Lines"])
-
-
 # Default location set to Amsterdam, Netherlands
 default_location = [52.3676, 4.9041]
 
@@ -45,26 +41,12 @@ longitude = st.sidebar.number_input("Longitude", value=default_location[1])
 # Search bar for address search
 address_search = st.sidebar.text_input("Search for address (requires internet connection)")
 
+# Button to search for a location
+if st.sidebar.button("Search Location"):
+    default_location = [latitude, longitude]
+
 # Mapbox GL JS API token
 mapbox_access_token = "pk.eyJ1IjoicGFyc2ExMzgzIiwiYSI6ImNtMWRqZmZreDB6MHMyaXNianJpYWNhcGQifQ.hot5D26TtggHFx9IFM-9Vw"
-
-
-# Function to get the distance values from FastAPI with retries
-def get_distances_value():
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            response = requests.get("https://fastapi-test-production-b351.up.railway.app/get-distances/")
-            if response.status_code == 200:
-                data = response.json()
-                distances = data.get("distances", {})
-                return distances
-            else:
-                st.error(f"Failed to fetch distances. Status code: {response.status_code}. Retrying...")
-        except requests.exceptions.RequestException as e:
-            st.error(f"Error fetching distances: {e}. Retrying...")
-    st.error("Failed to fetch distances from FastAPI server after multiple attempts.")
-    return {}
 
 # HTML and JS for Mapbox with Mapbox Draw plugin to add drawing functionalities
 mapbox_map_html = f"""
@@ -183,71 +165,40 @@ mapbox_map_html = f"""
    // Attach the updateMeasurements function to Mapbox draw events
 map.on('draw.create', (e) => {{
     const data = Draw.getAll();
+    let totalDistance = 0;
+
     data.features.forEach((feature) => {{
         if (feature.geometry.type === 'LineString') {{
-            const length = turf.length(feature, {{ units: 'kilometers' }});
-            // Send the distance and feature ID to the backend API
-            fetch("https://fastapi-test-production-b351.up.railway.app/send-distance/", {{
-                method: "POST",
-                headers: {{
-                    "Content-Type": "application/json",
-                }},
-                body: JSON.stringify({{ line_id: feature.id, distance: length }}),
-            }})
-            .then(response => response.json())
-            .then(data => console.log("Distance sent successfully", data))
-            .catch((error) => console.error("Error sending distance", error));
+            totalDistance += turf.length(feature, {{ units: 'kilometers' }});
         }}
     }});
-    updateSidebarMeasurements(e);
+
+    // Send the distance to the backend API
+    if (totalDistance > 0) {{
+        fetch("https://fastapi-test-production-b351.up.railway.app/send-distance/", {{
+            method: "POST",
+            headers: {{
+                "Content-Type": "application/json",
+            }},
+            body: JSON.stringify({{ distance: totalDistance }}),
+        }})
+        .then(response => response.json())
+        .then(data => console.log("Distance sent successfully", data))
+        .catch((error) => console.error("Error sending distance", error));
+    }}
+    updateSidebarMeasurements(e)
 }});
-
-
 map.on('draw.update', (e) => {{
     updateSidebarMeasurements(e);
 }});
-
-// Handle deletion of features and update the backend
 map.on('draw.delete', (e) => {{
-    const features = e.features;
-    features.forEach((feature) => {{
-        if (feature.geometry.type === 'LineString') {{
-            // Send delete request to FastAPI for this line
-            fetch(`https://fastapi-test-production-b351.up.railway.app/delete-distance/${{feature.id}}`, {{
-                method: "DELETE"
-            }})
-            .then(response => response.json())
-            .then(data => console.log("Distance deleted successfully", data))
-            .catch((error) => console.error("Error deleting distance", error));
-        }}
-    }});
-    deleteFeature(e);
+deleteFeature(e);
 }});
-
-map.on('load', () => {{
-    // Fetch previously saved distances from FastAPI
-    fetch("https://fastapi-test-production-b351.up.railway.app/get-distances/")
-    .then(response => response.json())
-    .then(data => {{
-        const distances = data.distances;
-        Object.keys(distances).forEach(line_id => {{
-            const distance = distances[line_id];
-            // Here, recreate the features with the distances received
-            // This can be extended to recreate the full LineString if coordinates are also saved
-            console.log(`Restored line ${{line_id}} with distance: ${{distance}}`);
-            // Add your logic here to redraw lines if possible
-        }});
-    }})
-    .catch((error) => console.error("Error loading saved distances", error));
-    updateSidebarMeasurements(e);
-}});
-
-
 
  function updateSidebarMeasurements(e) {{
         const data = Draw.getAll();
         let sidebarContent = "";
-        let totalDistances = []; 
+        let totalDistances = [];
         if (data.features.length > 0) {{
             const features = data.features;
             features.forEach(function (feature, index) {{
@@ -271,7 +222,7 @@ map.on('load', () => {{
                         featureColors[feature.id] = lineColor || 'blue';
                     }}
 
-                    
+
                     // Update the feature's source when it's moved to ensure the color moves with it
                     map.getSource('line-' + feature.id)?.setData(feature);
 
@@ -291,7 +242,7 @@ map.on('load', () => {{
 
                     let distanceUnit = length >= 1 ? 'km' : 'm';
                     let distanceValue = length >= 1 ? length.toFixed(2) : (length * 1000).toFixed(2);
-                    
+
 
                     sidebarContent += '<p>Line ' + featureNames[feature.id] + ' belongs to ' + (startLandmark?.properties.name || 'Unknown') + ' - ' + (endLandmark?.properties.name || 'Unknown') + ': ' + distanceValue + ' ' + distanceUnit + '</p>';
                 }} else if (feature.geometry.type === 'Polygon') {{
@@ -378,7 +329,7 @@ map.on('load', () => {{
         }}
         document.getElementById('measurements').innerHTML = sidebarContent;
    }}
-    
+
     function toggleSidebar() {{
         var sidebar = document.getElementById('sidebar');
         if (sidebar.classList.contains('collapsed')) {{
@@ -416,10 +367,10 @@ function deleteFeature(e) {{
             map.removeSource('marker-' + featureId);
         }}
 
-        console.log(`Feature ${{featureId}} and its color have been removed.`);
+        console.log(Feature ${{featureId}} and its color have been removed.);
     }});
 
-   
+
     updateSidebarMeasurements(e)
 }}
 
@@ -429,8 +380,10 @@ function deleteFeature(e) {{
 """
 components.html(mapbox_map_html, height=600)
 
-if st.sidebar.button("Search Location"):
+# Address search using Mapbox Geocoding API
+if address_search:
     geocode_url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{address_search}.json?access_token={mapbox_access_token}"
+    # Request the geocoded location
     try:
         response = requests.get(geocode_url)
         if response.status_code == 200:
@@ -440,9 +393,6 @@ if st.sidebar.button("Search Location"):
                 latitude, longitude = coordinates[1], coordinates[0]
                 st.sidebar.success(f"Address found: {geo_data['features'][0]['place_name']}")
                 st.sidebar.write(f"Coordinates: Latitude {latitude}, Longitude {longitude}")
-                default_location = [latitude, longitude]
-                # Set the new center for the map to zoom in closely
-                mapbox_map_html = mapbox_map_html.replace("{latitude}", str(latitude)).replace("{longitude}", str(longitude)).replace("zoom: 13", "zoom: 18")
             else:
                 st.sidebar.error("Address not found.")
         else:
@@ -450,15 +400,6 @@ if st.sidebar.button("Search Location"):
     except Exception as e:
         st.sidebar.error(f"Error: {e}")
 
-
-#Function to save a copy of the map and sidebar as an HTML file
-def save_map():
-    st.download_button(
-        label="Download Map and Measurements",
-        data=mapbox_map_html,
-        file_name="saved_map_with_drawings.html",
-        mime="text/html"
-    )
 
 
 #the pip price calculation par of the code:
@@ -548,7 +489,7 @@ def B1001_filter(P, distanceValue):
                 'External diameter (mm)': B1001_data_dict['External diameter (mm)'][i],
                 'Wall thickness (mm)': B1001_data_dict['Wall thickness (mm)'][i],
                 'Cost per m (Euro)': B1001_data_dict['Cost per m (Euro)'][i],
-                'Total Cost (Euro)': B1001_data_dict['Total Cost (Euro)'][i] 
+                'Total Cost (Euro)': B1001_data_dict['Total Cost (Euro)'][i]
             })
 
     if not available_pipes:
@@ -564,10 +505,10 @@ def B1003_filter(P, distanceValue):
     B1003_data_dict['Wall thickness (mm)'] = list(map(float, B1003_data_dict['Wall thickness (mm)']))
     B1003_data_dict['Cost per 100 m (Euro)'] = list(map(float, B1003_data_dict['Cost per 100 m (Euro)']))
     B1003_data_dict['Pressure (bar)'] = list(map(float, B1003_data_dict['Pressure (bar)']))
-    
+
     B1003_data_dict['Cost per m (Euro)'] = [cost / 100 for cost in B1003_data_dict['Cost per 100 m (Euro)']]
     B1003_data_dict['Total Cost (Euro)'] = [p * distanceValue for p in B1003_data_dict['Cost per m (Euro)']]
-    
+
     available_pipes = []
     for i in range(len(B1003_data_dict['Pressure (bar)'])):
         if B1003_data_dict['Pressure (bar)'][i] >= P:
@@ -705,40 +646,32 @@ def get_distance_value():
 # Main function to run the app
 def pipe_main():
     st.title("Pipe Selection Tool")
-    distance_data = get_distances_value()  # Fetch all line distances from the backend
 
-    if not distance_data:
-        st.warning("No line distances available yet. Please draw lines on the map to proceed.")
-    else:
-        st.write(f"Distances received: {distance_data}")
+    try:
+        # Get the inputs from the user
+        pressure = st.number_input("Enter the pressure (bar):", min_value=0.0, format="%.2f")
+        temperature = st.number_input("Enter the temperature (°C):", min_value=0.0, format="%.2f")
+        medium = st.text_input("Enter the medium:")
 
-        # Handle selection between Total Distance and Individual Lines
-        if distance_mode == "Total Distance":
-            total_distance = sum(distance_data.values())  # Calculate total distance
-            st.write(f"Total Distance: {total_distance:.2f} km")
+        # Wait until the distance value is available
+        distanceValue = get_distance_value()
 
-            # Button to calculate pipes for total distance
-            if st.button("Find Pipes for Total Distance"):
-                pressure = st.number_input("Enter the pressure (bar):", min_value=0.0, format="%.2f")
-                temperature = st.number_input("Enter the temperature (°C):", min_value=0.0, format="%.2f")
-                medium = st.text_input("Enter the medium:")
+        # Display a warning message if no distance value is available
+        if distanceValue is None:
+            st.warning("No line distances available yet. Please draw lines on the map to proceed.")
+        else:
+            # Add a button to calculate pipes and cost
+            if st.button("Find Pipes"):
+                st.write(f"Distance received: {distanceValue} km")
+                # Choose the pipe material based on the inputs
                 pipe_material = choose_pipe_material(pressure, temperature, medium)
                 st.write(f"Selected Pipe Material: {pipe_material}")
-                Pipe_finder(pipe_material, pressure, total_distance)
 
-        elif distance_mode == "Individual Lines":
-            # Loop through each individual line
-            for line_id, distance in distance_data.items():
-                st.write(f"Line ID {line_id}: {distance:.2f} km")
-                if st.button(f"Find Pipes for Line {line_id}"):
-                    # Get individual inputs for pressure, temperature, and medium
-                    pressure = st.number_input("Enter the pressure (bar):", min_value=0.0, format="%.2f", key=f"pressure_{line_id}")
-                    temperature = st.number_input("Enter the temperature (°C):", min_value=0.0, format="%.2f", key=f"temperature_{line_id}")
-                    medium = st.text_input("Enter the medium:", key=f"medium_{line_id}")
-                    pipe_material = choose_pipe_material(pressure, temperature, medium)
-                    st.write(f"Selected Pipe Material: {pipe_material}")
-                    Pipe_finder(pipe_material, pressure, distance)
+                # Display the pipe options and cost for the selected material and conditions
+                Pipe_finder(pipe_material, pressure, distanceValue)
 
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
 
 # Run the main function
 pipe_main()
