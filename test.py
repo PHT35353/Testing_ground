@@ -190,7 +190,7 @@ map.on('draw.create', (e) => {{
             method: "POST",
             headers: {{
                 "Content-Type": "application/json",
-            },
+            }},
             body: JSON.stringify({{ distance: 0 }}),
         }});
     }}
