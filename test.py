@@ -162,39 +162,41 @@ mapbox_map_html = f"""
     let featureColors = {{}};
     let featureNames = {{}};
 
-   // Attach the updateMeasurements function to Mapbox draw events
-map.on('draw.create', (e) => {{
-    const data = Draw.getAll();
-    let totalDistance = 0;
-
-    data.features.forEach((feature) => {{
-        if (feature.geometry.type === 'LineString') {{
-            totalDistance += turf.length(feature, {{ units: 'meters' }}); // Change to meters
-        }}
+   
+   function getSelectedDistances() {{
+    let selectedDistances = [];
+    document.querySelectorAll('input[type=checkbox]:checked').forEach(checkbox => {{
+        selectedDistances.push(parseFloat(checkbox.value));
     }});
 
-    if (totalDistance > 0) {{
-        fetch("https://fastapi-test-production-1ba4.up.railway.app/send-distance/", {{
+    if (selectedDistances.length > 0) {{
+        fetch("https://fastapi-test-production-1ba4.up.railway.app/send-distances/", {{
             method: "POST",
             headers: {{
                 "Content-Type": "application/json",
             }},
-            body: JSON.stringify({{ distance: totalDistance }}),
+            body: JSON.stringify({{ distances: selectedDistances }})
         }})
         .then(response => response.json())
-        .then(data => console.log("Distance sent successfully", data))
-        .catch((error) => console.error("Error sending distance", error));
+        .then(data => console.log("Distances sent successfully", data))
+        .catch((error) => console.error("Error sending distances", error));
     }} else {{
-        // Send a zero distance if no line is drawn
-        fetch("https://fastapi-test-production-1ba4.up.railway.app/send-distance/", {{
+        fetch("https://fastapi-test-production-1ba4.up.railway.app/send-distances/", {{
             method: "POST",
             headers: {{
                 "Content-Type": "application/json",
             }},
-            body: JSON.stringify({{ distance: 0 }}),
+            body: JSON.stringify({{ distances: [0] }})  // No distances selected, send 0
         }});
     }}
-        updateSidebarMeasurements(e);
+}}
+
+   
+   // Attach the updateMeasurements function to Mapbox draw events
+map.on('draw.create', (e) => {{
+    // Call the function to get selected distances and send to backend
+    getSelectedDistances();
+    updateSidebarMeasurements(e);
 }});
 
 
@@ -392,25 +394,33 @@ function deleteFeature(e) {{
     updateSidebarMeasurements(e)
 }}
 
-function saveMap() {{
-    const data = Draw.getAll();
-    const geojsonStr = JSON.stringify(data);
-    
-    const blob = new Blob([geojsonStr], {{ type: "application/json" }});
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'map_drawing.geojson';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-}}
-
 const saveButton = document.createElement('button');
 saveButton.innerHTML = "Save Map";
+saveButton.style.position = "absolute";
+saveButton.style.top = "10px";
+saveButton.style.right = "10px";
+saveButton.style.zIndex = "2";
 saveButton.onclick = saveMap;
 document.body.appendChild(saveButton);
+
+function saveMap() {{
+    const data = Draw.getAll();
+    if (data.features.length > 0) {{
+        const geojsonStr = JSON.stringify(data);
+        const blob = new Blob([geojsonStr], {{ type: "application/json" }});
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'map_drawing.geojson';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }} else {{
+        alert("No features drawn yet.");
+    }}
+}}
+
 
 </script>
 </body>
@@ -660,16 +670,20 @@ def check_server_status():
 
 # Function to get the distance value from FastAPI with retries
 
-def get_distance_value():
-    response = requests.get("https://fastapi-test-production-1ba4.up.railway.app/get-distance/")
+ def get_distance_values():
+    response = requests.get("https://fastapi-test-production-1ba4.up.railway.app/get-distances/")
     if response.status_code == 200:
         data = response.json()
-        distance = data.get("distance")
-        if distance is not None and distance > 0:
-            return distance
+        distances = data.get("individual_distances")
+        if distances and any(d > 0 for d in distances):
+            return distances
         else:
             st.warning("No distance drawn yet. Please draw lines on the map.")
             return None
+    else:
+        st.error("Failed to fetch distances from the backend.")
+        return None
+
 
 
 # Main function to run the app
@@ -682,25 +696,28 @@ def pipe_main():
         temperature = st.number_input("Enter the temperature (°C):", min_value=0.0, format="%.2f")
         medium = st.text_input("Enter the medium:")
 
-        # Wait until the distance value is available
-        distanceValue = get_distance_value()
+        # Wait until the distance values are available
+        distanceValues = get_distance_values()
 
         # Display a warning message if no distance value is available
-        if distanceValue is None:
+        if distanceValues is None:
             st.warning("No line distances available yet. Please draw lines on the map to proceed.")
         else:
             # Add a button to calculate pipes and cost
             if st.button("Find Pipes"):
-                st.write(f"Distance received: {distanceValue} km")
+                st.write(f"Distances received: {distanceValues} meters")
                 # Choose the pipe material based on the inputs
                 pipe_material = choose_pipe_material(pressure, temperature, medium)
                 st.write(f"Selected Pipe Material: {pipe_material}")
 
-                # Display the pipe options and cost for the selected material and conditions
-                Pipe_finder(pipe_material, pressure, distanceValue)
+                # Loop over individual distances and calculate costs
+                for i, distance in enumerate(distanceValues):
+                    st.write(f"Calculating for Line {i + 1}: {distance} meters")
+                    Pipe_finder(pipe_material, pressure, distance)
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
+
 
 # Run the main function
 pipe_main()
