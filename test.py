@@ -669,8 +669,7 @@ def check_server_status():
         return False
 
 # Function to get the distance value from FastAPI with retries
-
- def get_distance_values():
+def get_distance_values():
     response = requests.get("https://fastapi-test-production-1ba4.up.railway.app/get-distances/")
     if response.status_code == 200:
         data = response.json()
@@ -683,6 +682,7 @@ def check_server_status():
     else:
         st.error("Failed to fetch distances from the backend.")
         return None
+
 
 
 
