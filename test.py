@@ -668,74 +668,90 @@ def check_server_status():
         st.error(f"Error connecting to FastAPI server: {e}")
         return False
 
-# Function to get the distance value from FastAPI with retries
-def get_distance_values():
-    response = requests.get("https://fastapi-test-production-1ba4.up.railway.app/get-distances/")
-    if response.status_code == 200:
-        data = response.json()
-        distances = data.get("individual_distances")
-        if distances and any(d > 0 for d in distances):
-            return distances
-        else:
-            st.warning("No distance drawn yet. Please draw lines on the map.")
-            return None
-    else:
-        st.error("Failed to fetch distances from the backend.")
-        return None
 
 
 
 
-# Main function to run the app
+
+
 # Main function to run the app
 def pipe_main():
     st.title("Pipe Selection Tool")
 
+    # Fetch the distances from the backend
     def get_distance_values():
-        # Fetch the distances from the backend
         response = requests.get("https://fastapi-test-production-1ba4.up.railway.app/get-distances/")
         if response.status_code == 200:
             data = response.json()
-            distances = data.get("individual_distances")
-            if distances and any(d > 0 for d in distances):
-                return distances
+            individual_distances = data.get("individual_distances")
+            total_distance = data.get("total_distance")
+            if individual_distances and total_distance > 0:
+                return individual_distances, total_distance
             else:
-                return None
+                return None, None
         else:
             st.error("Failed to fetch distances from the backend.")
-            return None
+            return None, None
 
-    try:
-        # Get the inputs from the user
-        pressure = st.number_input("Enter the pressure (bar):", min_value=0.0, format="%.2f")
-        temperature = st.number_input("Enter the temperature (°C):", min_value=0.0, format="%.2f")
-        medium = st.text_input("Enter the medium:")
+    # User inputs for pressure, temperature, and medium
+    pressure = st.number_input("Enter the pressure (bar):", min_value=0.0, format="%.2f")
+    temperature = st.number_input("Enter the temperature (°C):", min_value=0.0, format="%.2f")
+    medium = st.text_input("Enter the medium:")
 
-        # Check if the user clicks the "Get Piping Info" button
-        if st.button("Get Piping Info"):
-            # Wait until the distance values are available
-            distanceValues = get_distance_values()
+    # Handle the "Get Piping Info" button
+    if st.button("Get Piping Info"):
+        # Fetch distance values
+        individual_distances, total_distance = get_distance_values()
 
-            # Display a warning message if no distance value is available
-            if distanceValues is None:
-                st.warning("No line distances available yet. Please draw lines on the map to proceed.")
-            else:
-                # Calculate the pipe price if distances are available
-                st.write(f"Distances received: {distanceValues} meters")
-                # Choose the pipe material based on the inputs
-                pipe_material = choose_pipe_material(pressure, temperature, medium)
-                st.write(f"Selected Pipe Material: {pipe_material}")
+        if individual_distances is None:
+            st.warning("No line distances available yet. Please draw lines on the map to proceed.")
+        else:
+            st.write(f"Individual distances: {individual_distances}")
+            st.write(f"Total distance: {total_distance} meters")
 
-                # Loop over individual distances and calculate costs
-                for i, distance in enumerate(distanceValues):
+            # User choice: calculate using total distance or individual distances
+            use_total = st.radio("Use total distance or select individual distances?", ("Total", "Individual"))
+
+            # Choose the pipe material based on inputs
+            pipe_material = choose_pipe_material(pressure, temperature, medium)
+            st.write(f"Selected Pipe Material: {pipe_material}")
+
+            # If the user selects "Total", use the total distance for calculation
+            if use_total == "Total":
+                st.write(f"Calculating price for total distance: {total_distance} meters")
+                Pipe_finder(pipe_material, pressure, total_distance)
+
+            # If the user selects "Individual", use each individual distance for calculation
+            elif use_total == "Individual":
+                for i, distance in enumerate(individual_distances):
                     st.write(f"Calculating for Line {i + 1}: {distance} meters")
                     Pipe_finder(pipe_material, pressure, distance)
 
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
+# Function to choose pipe material based on user input
+def choose_pipe_material(P, T, M):
+    # Logic to choose pipe material
+    if M.lower() in ('water glycol', 'water-glycol', 'pressurized water', 'pressurized-water'):
+        if P > 10 and T > 425:
+            return 'B1005'
+        else:
+            return 'B1008'
+    if P <= 10:
+        if T <= 60:
+            return 'B1008'
+        elif 60 <= T <= 425:
+            return 'B1001'
+        else:
+            return 'B1008'
+    else:
+        if T <= 425:
+            return 'B1001'
+        else:
+            return 'B1005'
 
-
-
+# Function to find and display pipes based on material, pressure, and distance
+def Pipe_finder(material, P, distanceValue):
+    # Mockup logic for finding pipes based on material, pressure, and distance
+    st.write(f"Finding pipes for material {material}, pressure {P}, and distance {distanceValue} meters")
 
 # Run the main function
 pipe_main()
