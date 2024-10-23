@@ -687,8 +687,23 @@ def get_distance_values():
 
 
 # Main function to run the app
+# Main function to run the app
 def pipe_main():
     st.title("Pipe Selection Tool")
+
+    def get_distance_values():
+        # Fetch the distances from the backend
+        response = requests.get("https://fastapi-test-production-1ba4.up.railway.app/get-distances/")
+        if response.status_code == 200:
+            data = response.json()
+            distances = data.get("individual_distances")
+            if distances and any(d > 0 for d in distances):
+                return distances
+            else:
+                return None
+        else:
+            st.error("Failed to fetch distances from the backend.")
+            return None
 
     try:
         # Get the inputs from the user
@@ -696,15 +711,16 @@ def pipe_main():
         temperature = st.number_input("Enter the temperature (°C):", min_value=0.0, format="%.2f")
         medium = st.text_input("Enter the medium:")
 
-        # Wait until the distance values are available
-        distanceValues = get_distance_values()
+        # Check if the user clicks the "Get Piping Info" button
+        if st.button("Get Piping Info"):
+            # Wait until the distance values are available
+            distanceValues = get_distance_values()
 
-        # Display a warning message if no distance value is available
-        if distanceValues is None:
-            st.warning("No line distances available yet. Please draw lines on the map to proceed.")
-        else:
-            # Add a button to calculate pipes and cost
-            if st.button("Find Pipes"):
+            # Display a warning message if no distance value is available
+            if distanceValues is None:
+                st.warning("No line distances available yet. Please draw lines on the map to proceed.")
+            else:
+                # Calculate the pipe price if distances are available
                 st.write(f"Distances received: {distanceValues} meters")
                 # Choose the pipe material based on the inputs
                 pipe_material = choose_pipe_material(pressure, temperature, medium)
@@ -717,6 +733,8 @@ def pipe_main():
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
+
+
 
 
 # Run the main function
