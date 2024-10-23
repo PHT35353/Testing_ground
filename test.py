@@ -169,11 +169,10 @@ map.on('draw.create', (e) => {{
 
     data.features.forEach((feature) => {{
         if (feature.geometry.type === 'LineString') {{
-            totalDistance += turf.length(feature, {{ units: 'kilometers' }});
+            totalDistance += turf.length(feature, {{ units: 'meters' }}); // Change to meters
         }}
     }});
 
-    // Send the distance to the backend API
     if (totalDistance > 0) {{
         fetch("https://fastapi-test-production-1ba4.up.railway.app/send-distance/", {{
             method: "POST",
@@ -185,12 +184,24 @@ map.on('draw.create', (e) => {{
         .then(response => response.json())
         .then(data => console.log("Distance sent successfully", data))
         .catch((error) => console.error("Error sending distance", error));
+    }} else {{
+        // Send a zero distance if no line is drawn
+        fetch("https://fastapi-test-production-1ba4.up.railway.app/send-distance/", {{
+            method: "POST",
+            headers: {{
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({{ distance: 0 }}),
+        }});
     }}
-    updateSidebarMeasurements(e)
+        updateSidebarMeasurements(e);
 }});
+
+
 map.on('draw.update', (e) => {{
     updateSidebarMeasurements(e);
 }});
+
 map.on('draw.delete', (e) => {{
 deleteFeature(e);
 }});  
@@ -201,12 +212,17 @@ deleteFeature(e);
         let totalDistances = []; 
         if (data.features.length > 0) {{
             const features = data.features;
+            sidebarContent += '<h4>Select lines for price calculation:</h4>';
             features.forEach(function (feature, index) {{
                 if (feature.geometry.type === 'LineString') {{
-                    const length = turf.length(feature);
+                    const length = turf.length(feature, {{ units: 'meters' }});
                     totalDistances.push(length);
                     const startCoord = feature.geometry.coordinates[0];
                     const endCoord = feature.geometry.coordinates[feature.geometry.coordinates.length - 1];
+
+                     let distanceId = 'line' + index;
+                     sidebarContent += '<input type="checkbox" id="' + distanceId + '" value="' + length + '" />';
+                     sidebarContent += '<label for="' + distanceId + '">Line ' + (index + 1) + ': ' + length.toFixed(2) + ' m</label><br>';
 
                     // Identify landmarks for the start and end points of the line
                     let startLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, startCoord) < 0.01);
@@ -324,6 +340,8 @@ deleteFeature(e);
                     sidebarContent += '<p>Landmark ' + feature.properties.name + '</p>';
                 }}
             }});
+             sidebarContent += '<input type="checkbox" id="totalDistance" value="' + totalDistances.reduce((a, b) => a + b, 0) + '" />';
+             sidebarContent += '<label for="totalDistance">Total Distance: ' + totalDistances.reduce((a, b) => a + b, 0).toFixed(2) + ' m</label><br>';
         }} else {{
             sidebarContent = "<p>No features drawn yet.</p>";
         }}
@@ -373,6 +391,26 @@ function deleteFeature(e) {{
    
     updateSidebarMeasurements(e)
 }}
+
+function saveMap() {{
+    const data = Draw.getAll();
+    const geojsonStr = JSON.stringify(data);
+    
+    const blob = new Blob([geojsonStr], {{ type: "application/json" }});
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'map_drawing.geojson';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}}
+
+const saveButton = document.createElement('button');
+saveButton.innerHTML = "Save Map";
+saveButton.onclick = saveMap;
+document.body.appendChild(saveButton);
 
 </script>
 </body>
@@ -621,26 +659,17 @@ def check_server_status():
         return False
 
 # Function to get the distance value from FastAPI with retries
+
 def get_distance_value():
-    max_retries = 3
-    for attempt in range(max_retries):
-        if not check_server_status():
-            break
-        try:
-            response = requests.get("https://fastapi-test-production-1ba4.up.railway.app/get-distance/")
-            if response.status_code == 200:
-                data = response.json()
-                distance = data.get("distance")
-                if distance is not None:
-                    return distance
-                else:
-                    st.warning("Distance value is not yet available.")
-            else:
-                st.error(f"Failed to fetch distance. Status code: {response.status_code}. Retrying...")
-        except requests.exceptions.RequestException as e:
-            st.error(f"Error fetching distance: {e}. Retrying...")
-    st.error("Failed to fetch distance from FastAPI server after multiple attempts.")
-    return None
+    response = requests.get("https://fastapi-test-production-1ba4.up.railway.app/get-distance/")
+    if response.status_code == 200:
+        data = response.json()
+        distance = data.get("distance")
+        if distance is not None and distance > 0:
+            return distance
+        else:
+            st.warning("No distance drawn yet. Please draw lines on the map.")
+            return None
 
 
 # Main function to run the app
