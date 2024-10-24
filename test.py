@@ -695,20 +695,6 @@ def check_server_status():
         return False
 
 
-# Streamlit to manage the distances after refresh
-if 'distances_sent' not in st.session_state:
-    st.session_state.distances_sent = False  # Initialize as False after refresh
-
-# Clear distance values on refresh (optional)
-def clear_saved_distances():
-    st.session_state.distances_sent = False
-    requests.get("https://fastapi-test-production-1ba4.up.railway.app/clear-distances/")  # Optional: Clear backend distances
-
-# If button to refresh is clicked, clear distances
-if st.button("Clear Distances"):
-    clear_saved_distances()
-
-# Call the FastAPI to check if there are any distances
 def get_distance_values():
     try:
         response = requests.get("https://fastapi-test-production-1ba4.up.railway.app/get-distances/")
@@ -716,8 +702,8 @@ def get_distance_values():
             data = response.json()
             individual_distances = data.get("individual_distances")
             total_distance = data.get("total_distance")
-            if individual_distances and total_distance > 0:
-                st.session_state.distances_sent = True
+            # Ensure individual_distances is a list with values
+            if individual_distances and len(individual_distances) > 0 and total_distance > 0:
                 return individual_distances, total_distance
             else:
                 return None, None
