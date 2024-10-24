@@ -265,7 +265,7 @@ mapbox_map_html = f"""
     const loadButton = document.getElementById("loadMapButton");
 
     saveButton.style.position = "absolute";
-    saveButton.style.bottom = "330px";
+    saveButton.style.bottom = "400px";
     saveButton.style.right = "10px";
     saveButton.style.zIndex = "2";
     saveButton.style.backgroundColor = "white";
@@ -275,7 +275,7 @@ mapbox_map_html = f"""
     saveButton.style.cursor = "pointer";
 
     loadButton.style.position = "absolute";
-    loadButton.style.bottom = "400px";
+    loadButton.style.bottom = "360px";
     loadButton.style.right = "10px";
     loadButton.style.zIndex = "2";
     loadButton.style.backgroundColor = "white";
