@@ -713,7 +713,7 @@ def pipe_main():
             st.warning("No line distances available yet. Please draw lines on the map to proceed.")
         else:
             st.write(f"Selected distances: {individual_distances}")
-            st.write(f"Total distance: {total_distance} meters")
+            
 
             # Choose the pipe material based on inputs
             pipe_material = choose_pipe_material(pressure, temperature, medium)
