@@ -543,17 +543,7 @@ function saveMapWithDrawingsAndMeasurements() {{
     }};
 }}
 
-// Add the Save Screenshot button to the page
-const saveButton = document.createElement('button');
-saveButton.innerHTML = "Save Map with Drawings and Measurements";
-saveButton.style.position = "absolute";
-saveButton.style.bottom = "280px";  // Positioned under the Collapse button
-saveButton.style.right = "10px";
-saveButton.style.zIndex = "2";
 
-// Add an event listener to the button that saves the map with drawings when clicked
-saveButton.onclick = saveMapWithDrawingsAndMeasurements;
-document.body.appendChild(saveButton);
 
 
 // Add the Save Screenshot button to the page
