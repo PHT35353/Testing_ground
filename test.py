@@ -721,7 +721,7 @@ def pipe_main():
 
             # Calculate for each selected distance (individual or total)
             for i, distance in enumerate(individual_distances):
-                st.write(f"Calculating for Line {i + 1}: {distance} meters")
+                st.write(f"Calculating distance: {distance} meters")
                 Pipe_finder(pipe_material, pressure, distance)
 
 
