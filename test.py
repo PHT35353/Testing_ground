@@ -168,9 +168,6 @@ mapbox_map_html = f"""
     </div>
 </div>
 <button id="toggleSidebar" onclick="toggleSidebar()">Collapse</button>
-<button id="saveMapButton">Save Map</button>
-<button id="loadMapButton">Load Map</button>
-
 <div id="map"></div>
 <script>
     let distanceListenerAdded = false;
@@ -395,6 +392,8 @@ map.on('draw.delete', (e) => {{
              sidebarContent += '<input type="checkbox" id="totalDistance" value="' + totalDistances.reduce((a, b) => a + b, 0) + '" />';
              sidebarContent += '<label for="totalDistance">Total Distance: ' + totalDistances.reduce((a, b) => a + b, 0).toFixed(2) + ' m</label><br>';
              sidebarContent += '<br><button onclick="getSelectedDistances()">Send Selected Distances</button>';
+             sidebarContent += '<br><button id="saveMapButton" onclick="saveMap()">Save Map</button>';
+             sidebarContent += '<br><button id="loadMapButton" onclick="loadMap()">Load Map</button>';
         }} else {{
             sidebarContent = "<p>No features drawn yet.</p>";
         }}
