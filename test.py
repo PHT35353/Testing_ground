@@ -48,6 +48,53 @@ if st.sidebar.button("Search Location"):
 # Mapbox GL JS API token
 mapbox_access_token = "pk.eyJ1IjoicGFyc2ExMzgzIiwiYSI6ImNtMWRqZmZreDB6MHMyaXNianJpYWNhcGQifQ.hot5D26TtggHFx9IFM-9Vw"
 
+# Function to search for an address and automatically fill in the coordinates
+def search_address_and_fill_coordinates():
+    # Input for the address search
+    address_search = st.sidebar.text_input("Search for address (requires internet connection)")
+
+    # If the user searches for an address
+    if address_search:
+        geocode_url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{address_search}.json?access_token={mapbox_access_token}"
+
+        try:
+            # Request the geocoded location from Mapbox API
+            response = requests.get(geocode_url)
+            if response.status_code == 200:
+                geo_data = response.json()
+                if len(geo_data['features']) > 0:
+                    # Extract coordinates of the first result
+                    coordinates = geo_data['features'][0]['center']
+                    place_name = geo_data['features'][0]['place_name']
+                    
+                    # Auto-fill the latitude and longitude fields
+                    latitude = coordinates[1]
+                    longitude = coordinates[0]
+
+                    # Notify user and auto-fill the coordinates in the Streamlit sidebar
+                    st.sidebar.success(f"Address found: {place_name}")
+                    st.sidebar.write(f"Coordinates: Latitude {latitude}, Longitude {longitude}")
+                    return latitude, longitude  # Return the found coordinates
+                else:
+                    st.sidebar.error("Address not found.")
+                    return None, None
+            else:
+                st.sidebar.error("Error connecting to the Mapbox API.")
+                return None, None
+        except Exception as e:
+            st.sidebar.error(f"Error: {e}")
+            return None, None
+    return None, None
+
+# Call the search function and retrieve the coordinates
+latitude, longitude = search_address_and_fill_coordinates()
+
+# Set the default location in case no search result is found
+if latitude is None or longitude is None:
+    latitude = default_location[0]  # Default latitude if no search is done
+    longitude = default_location[1]  # Default longitude if no search is done
+
+
 # HTML and JS for Mapbox with Mapbox Draw plugin to add drawing functionalities
 mapbox_map_html = f"""
 <!DOCTYPE html>
@@ -130,7 +177,7 @@ mapbox_map_html = f"""
         container: 'map',
         style: 'mapbox://styles/mapbox/satellite-streets-v12',
         center: [{longitude}, {latitude}],
-        zoom: 13,
+        zoom: 15,
         pitch: 45, // For 3D effect
         bearing: 0, // Rotation angle
         antialias: true
