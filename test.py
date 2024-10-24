@@ -695,6 +695,7 @@ def get_distance_values():
         return None, None
 
 # Main function to run the app
+# Main function to run the app
 def pipe_main():
     st.title("Pipe Selection Tool")
 
@@ -705,32 +706,25 @@ def pipe_main():
 
     # Handle the "Get Piping Info" button
     if st.button("Get Piping Info"):
-        # Fetch distance values
+        # Fetch distance values from backend (these have already been selected from the map)
         individual_distances, total_distance = get_distance_values()
 
         if individual_distances is None:
             st.warning("No line distances available yet. Please draw lines on the map to proceed.")
         else:
-            st.write(f"Individual distances: {individual_distances}")
+            st.write(f"Selected distances: {individual_distances}")
             st.write(f"Total distance: {total_distance} meters")
 
             # Choose the pipe material based on inputs
             pipe_material = choose_pipe_material(pressure, temperature, medium)
             st.write(f"Selected Pipe Material: {pipe_material}")
 
-            # If the user selects "Total", use the total distance for calculation
-            if use_total == "Total":
-                st.write(f"Calculating price for total distance: {total_distance} meters")
-                Pipe_finder(pipe_material, pressure, total_distance)
+            # Calculate for each selected distance (individual or total)
+            for i, distance in enumerate(individual_distances):
+                st.write(f"Calculating for Line {i + 1}: {distance} meters")
+                Pipe_finder(pipe_material, pressure, distance)
 
-            # If the user selects "Individual", ensure at least one distance is available
-            elif use_total == "Individual":
-                if len(individual_distances) == 0:
-                    st.warning("No individual distances available. Please select at least one line.")
-                else:
-                    for i, distance in enumerate(individual_distances):
-                        st.write(f"Calculating for Line {i + 1}: {distance} meters")
-                        Pipe_finder(pipe_material, pressure, distance)
+
 
 # Run the main function
 pipe_main()
