@@ -736,8 +736,8 @@ def pipe_main():
             st.write(f"Individual distances: {individual_distances}")
             st.write(f"Total distance: {total_distance} meters")
 
-            # User choice: calculate using total distance or individual distances
-            use_total = st.radio("Use total distance or select individual distances?", ("Total"))
+            # User choice: calculate using total
+            use_total = st.radio("The total distance", ("Total"))
 
             # Choose the pipe material based on inputs
             pipe_material = choose_pipe_material(pressure, temperature, medium)
