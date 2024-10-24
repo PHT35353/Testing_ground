@@ -445,30 +445,38 @@ function deleteFeature(e) {{
     updateSidebarMeasurements(e)
 }}
 
+// Create the "Save Map Screenshot" button
 const saveButton = document.createElement('button');
 saveButton.innerHTML = "Save Map Screenshot";
 saveButton.style.position = "absolute";
 saveButton.style.top = "10px";
 saveButton.style.right = "10px";
 saveButton.style.zIndex = "2";
+
+// Set the screenshot capture function on button click
 saveButton.onclick = saveMapScreenshot;
 document.body.appendChild(saveButton);
 
+// Function to capture a screenshot of the map and drawings
 function saveMapScreenshot() {{
-    // Capture the map view as an image (including drawings)
-    const canvas = map.getCanvas();
-    const imgData = canvas.toDataURL('image/png');
-    
-    // Create a link element to download the image
-    const link = document.createElement('a');
-    link.href = imgData;
-    link.download = 'map_screenshot.png';
-    
-    // Simulate a click to start the download
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Wait until the map has fully rendered
+    map.once('idle', function() {{
+        // Capture the map view as an image (including the drawn features)
+        const canvas = map.getCanvas();
+        const imgData = canvas.toDataURL('image/png');
+        
+        // Create a link element to trigger the download
+        const link = document.createElement('a');
+        link.href = imgData;
+        link.download = 'map_screenshot.png';  // File name of the saved screenshot
+        
+        // Simulate a click to download the screenshot
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }});
 }}
+
 
 
 
