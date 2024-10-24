@@ -445,64 +445,68 @@ function deleteFeature(e) {{
 <button id="saveMapButton">Save Map</button>
 <button id="loadMapButton">Load Map</button>
 
-<script>
-function saveMap() {{
-    const mapData = Draw.getAll();  // Get all drawn features from Mapbox
-    const user_id = "user1";  // Assign a user ID (replace with dynamic value as needed)
+document.addEventListener('DOMContentLoaded', function () {{
+    
+    // Function to save the map data to the backend
+    function saveMap() {{
+        const mapData = Draw.getAll();  // Get all drawn features from Mapbox
+        const user_id = "user1";  // Assign a user ID (replace with dynamic value as needed)
 
-    // Send the map data to the backend
-    fetch("https://fastapi-test-production-1ba4.up.railway.app/save-map/", {{
-        method: "POST",
-        headers: {{
-            "Content-Type": "application/json",
-        }},
-        body: JSON.stringify({{
-            user_id: user_id,
-            map_data: mapData
+        // Send the map data to the backend
+        fetch("https://fastapi-test-production-1ba4.up.railway.app/save-map/", {{
+            method: "POST",
+            headers: {{
+                "Content-Type": "application/json",
+            }},
+            body: JSON.stringify({{
+                user_id: user_id,
+                map_data: mapData
+            }})
         }})
-    }})
-    .then(response => response.json())
-    .then(data => {{
-        if (data.status === "success") {{
-            alert("Map data saved successfully!");
-        }} else {{
-            alert("Failed to save map data.");
-        }}
-    }})
-    .catch(error => {{
-        console.error("Error saving map data:", error);
-    }});
-}}
+        .then(response => response.json())
+        .then(data => {{
+            if (data.status === "success") {{
+                alert("Map data saved successfully!");
+            }} else {{
+                alert("Failed to save map data.");
+            }}
+        }})
+        .catch(error => {{
+            console.error("Error saving map data:", error);
+        }});
+    }}
 
+    // Function to load the saved map data from the backend
+    function loadMap() {{
+        const user_id = "user1";  // The same user ID used when saving the map
 
-function loadMap() {{
-    const user_id = "user1";  // The same user ID used when saving the map
+        // Request the saved map data from the backend
+        fetch(`https://fastapi-test-production-1ba4.up.railway.app/load-map/${{user_id}}`)
+        .then(response => response.json())
+        .then(data => {{
+            if (data.status === "success") {{
+                const savedMapData = data.map_data;
 
-    // Request the saved map data from the backend
-    fetch(`https://fastapi-test-production-1ba4.up.railway.app/load-map/${{user_id}}`)
-    .then(response => response.json())
-    .then(data => {{
-        if (data.status === "success") {{
-            const savedMapData = data.map_data;
+                // Clear existing drawings before loading new data
+                Draw.deleteAll();
+                
+                // Add the saved features back to the map
+                Draw.add(savedMapData);
+                
+                alert("Map data loaded successfully!");
+            }} else {{
+                alert("No saved map data found.");
+            }}
+        }})
+        .catch(error => {{
+            console.error("Error loading map data:", error);
+        }});
+    }}
 
-            // Clear existing drawings before loading new data
-            Draw.deleteAll();
-            
-            // Add the saved features back to the map
-            Draw.add(savedMapData);
-            
-            alert("Map data loaded successfully!");
-        }} else {{
-            alert("No saved map data found.");
-        }}
-    }})
-    .catch(error => {{
-        console.error("Error loading map data:", error);
-    }});
-}}
-
-document.getElementById("saveMapButton").addEventListener("click", saveMap);
-document.getElementById("loadMapButton").addEventListener("click", loadMap);
+    // Attach event listeners to the buttons
+    document.getElementById("saveMapButton").addEventListener("click", saveMap);
+    document.getElementById("loadMapButton").addEventListener("click", loadMap);
+}});
 </script>
 </body>
 </html>
