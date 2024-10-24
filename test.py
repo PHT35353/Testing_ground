@@ -453,28 +453,29 @@ function deleteFeature(e) {{
 function saveMapWithDrawingsAndMeasurements() {{
     const mapContainer = document.getElementById('map'); // The map container
     const sidebarContainer = document.getElementById('sidebar'); // The sidebar container
-    
+
     // Create a canvas element
     const canvas = document.createElement('canvas');
     canvas.width = mapContainer.offsetWidth + sidebarContainer.offsetWidth;
     canvas.height = Math.max(mapContainer.offsetHeight, sidebarContainer.offsetHeight);
     const ctx = canvas.getContext('2d');
 
-    // Load the Mapbox static map image (without GeoJSON, use normal static map URL)
-    const center = map.getCenter(); // Get current map center
+    // Load the Mapbox static map image (without GeoJSON)
+    const center = map.getCenter();  // Get current map center
     const zoom = map.getZoom();  // Get current zoom level
     const staticMapUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${{center.lng}},${{center.lat}},${{zoom}}/1280x720?access_token=${{mapboxgl.accessToken}}`;
 
     const mapImg = new Image();
-    mapImg.crossOrigin = 'Anonymous'; // Avoid CORS issues
+    mapImg.crossOrigin = 'Anonymous';  // Avoid CORS issues
     mapImg.src = staticMapUrl;
 
+    // Draw the map once the image has loaded
     mapImg.onload = function() {{
-        // Draw the map
+        // Draw the static map image
         ctx.drawImage(mapImg, 0, 0, mapContainer.offsetWidth, mapContainer.offsetHeight);
 
-        // Now overlay the GeoJSON features (lines, polygons) on the canvas
-        const geoJSONData = getGeoJSONData();
+        // Overlay GeoJSON features (drawn lines, polygons, etc.)
+        const geoJSONData = getGeoJSONData();  // Get drawn features as GeoJSON
         geoJSONData.features.forEach((feature) => {{
             if (feature.geometry.type === 'LineString') {{
                 ctx.strokeStyle = feature.properties.color || 'blue';
@@ -505,7 +506,7 @@ function saveMapWithDrawingsAndMeasurements() {{
             }}
         }});
 
-        // Capture the sidebar measurements text
+        // Capture and draw the sidebar measurements text
         const sidebarContent = sidebarContainer.innerText;
         const sidebarTextLines = sidebarContent.split('\n');
 
@@ -527,10 +528,12 @@ function saveMapWithDrawingsAndMeasurements() {{
         link.click();
     }};
 
+    // Handle map image loading errors
     mapImg.onerror = function() {{
         console.error('Failed to load map image. Check the URL or cross-origin issues.');
     }};
 }}
+
 
 
 // Add the Save Screenshot button to the page
