@@ -478,7 +478,7 @@ function saveMapWithDrawingsAndMeasurements() {{
 
     // Load the Mapbox static map image
     const mapImg = new Image();
-    const mapboxStaticUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${{map.getCenter().lng}},${{map.getCenter().lat}},${{map.getZoom()}}/1280x720?access_token= "pk.eyJ1IjoicGFyc2ExMzgzIiwiYSI6ImNtMWRqZmZreDB6MHMyaXNianJpYWNhcGQifQ.hot5D26TtggHFx9IFM-9Vw"`;
+    const mapboxStaticUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${{map.getCenter().lng}},${{map.getCenter().lat}},${{map.getZoom()}}/1280x720?access_token=accessToken`;
 
     mapImg.crossOrigin = 'Anonymous';
     mapImg.src = mapboxStaticUrl;
