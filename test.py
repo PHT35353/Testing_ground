@@ -38,8 +38,6 @@ default_location = [52.3676, 4.9041]
 latitude = st.sidebar.number_input("Latitude", value=default_location[0], key="latitude_input")
 longitude = st.sidebar.number_input("Longitude", value=default_location[1], key="longitude_input")
 
-# Search bar for address search with a unique key
-address_search = st.sidebar.text_input("Search for address (requires internet connection)", key="address_search")
 
 
 # Button to search for a location
@@ -484,7 +482,7 @@ function saveMap() {{
 """
 components.html(mapbox_map_html, height=600)
 
-# Address search using Mapbox Geocoding API
+""" Address search using Mapbox Geocoding API
 if address_search:
     geocode_url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{address_search}.json?access_token={mapbox_access_token}"
     # Request the geocoded location
@@ -502,7 +500,7 @@ if address_search:
         else:
             st.sidebar.error("Error connecting to the Mapbox API.")
     except Exception as e:
-        st.sidebar.error(f"Error: {e}")
+        st.sidebar.error(f"Error: {e}")"""
 
 
 
