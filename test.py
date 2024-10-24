@@ -189,7 +189,7 @@ mapbox_map_html = f"""
         }});
     }} else {{
         console.log("No distances selected.");  // Log when no distances are selected
-        alert("Please select at least one distance to send.");
+       
     }}
 }}
 
