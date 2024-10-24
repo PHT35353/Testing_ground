@@ -736,19 +736,13 @@ def pipe_main():
             st.write(f"Individual distances: {individual_distances}")
             st.write(f"Total distance: {total_distance} meters")
 
-            # User choice: calculate using total
-            use_total = st.radio("The total distance", ("Total"))
-
             # Choose the pipe material based on inputs
             pipe_material = choose_pipe_material(pressure, temperature, medium)
             st.write(f"Selected Pipe Material: {pipe_material}")
 
             # If the user selects "Total", use the total distance for calculation
-            if  use_total == "Total":
                 st.write(f"Calculating price for total distance: {total_distance} meters")
                 Pipe_finder(pipe_material, pressure, total_distance)
-            else:
-                st.write("error")
 
 
 # Run the main function
