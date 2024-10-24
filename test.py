@@ -462,7 +462,7 @@ function saveMapWithDrawingsAndMeasurements() {{
 
     // Load the Mapbox static map image with GeoJSON overlay
     const geoJSONData = getGeoJSONData();  // Extract drawn features
-    const mapboxStaticUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/geojson(${{encodeURIComponent(JSON.stringify(geoJSONData))}})/${{map.getCenter().lng}},${{map.getCenter().lat}},${{map.getZoom()}},0,60/1280x720?access_token=${{mapboxgl.accessToken}}`;
+    const mapboxStaticUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/geojson(${{encodeURIComponent(JSON.stringify(geoJSONData))}})/${{map.getCenter().lng}},${{map.getCenter().lat}},${{map.getZoom()}},0,60/1280x720?access_token=${mapboxgl.accessToken}`;
     
     const mapImg = new Image();
     mapImg.crossOrigin = 'Anonymous'; // Avoid CORS issues
