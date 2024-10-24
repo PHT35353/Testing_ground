@@ -446,31 +446,30 @@ function deleteFeature(e) {{
 }}
 
 const saveButton = document.createElement('button');
-saveButton.innerHTML = "Save Map";
+saveButton.innerHTML = "Save Map Screenshot";
 saveButton.style.position = "absolute";
 saveButton.style.top = "10px";
 saveButton.style.right = "10px";
 saveButton.style.zIndex = "2";
-saveButton.onclick = saveMap;
+saveButton.onclick = saveMapScreenshot;
 document.body.appendChild(saveButton);
 
-function saveMap() {{
-    const data = Draw.getAll();
-    if (data.features.length > 0) {{
-        const geojsonStr = JSON.stringify(data);
-        const blob = new Blob([geojsonStr], {{ type: "application/json" }});
-        const url = URL.createObjectURL(blob);
-
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'map_drawing.geojson';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-    }} else {{
-        alert("No features drawn yet.");
-    }}
+function saveMapScreenshot() {{
+    // Capture the map view as an image (including drawings)
+    const canvas = map.getCanvas();
+    const imgData = canvas.toDataURL('image/png');
+    
+    // Create a link element to download the image
+    const link = document.createElement('a');
+    link.href = imgData;
+    link.download = 'map_screenshot.png';
+    
+    // Simulate a click to start the download
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }}
+
 
 
 </script>
