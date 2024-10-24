@@ -445,53 +445,56 @@ function deleteFeature(e) {{
     updateSidebarMeasurements(e)
 }}
 
+// Function to capture a screenshot of the map including the sidebar
+function saveMapScreenshot() {{
+    const mapCanvas = map.getCanvas();
+    const sidebar = document.getElementById('sidebar');
+    
+    // Create a new canvas to hold both the map and sidebar
+    const combinedCanvas = document.createElement('canvas');
+    const ctx = combinedCanvas.getContext('2d');
+    
+    // Set the new canvas dimensions to include both sidebar and map
+    combinedCanvas.width = mapCanvas.width + sidebar.offsetWidth;
+    combinedCanvas.height = Math.max(mapCanvas.height, sidebar.offsetHeight);
+    
+    // Create a temporary canvas for the sidebar rendering (as it's not a canvas element)
+    const sidebarCanvas = document.createElement('canvas');
+    sidebarCanvas.width = sidebar.offsetWidth;
+    sidebarCanvas.height = sidebar.offsetHeight;
+    const sidebarCtx = sidebarCanvas.getContext('2d');
+    
+    // Draw the sidebar (using the temporary canvas)
+    sidebarCtx.fillStyle = window.getComputedStyle(sidebar).backgroundColor;
+    sidebarCtx.fillRect(0, 0, sidebar.offsetWidth, sidebar.offsetHeight);
+    sidebarCtx.font = "16px Arial";
+    sidebarCtx.fillStyle = "#000";
+    sidebarCtx.fillText("Measurements", 10, 30); // Example text from the sidebar
+    
+    // Now, merge the map canvas and sidebar
+    ctx.drawImage(sidebarCanvas, 0, 0);
+    ctx.drawImage(mapCanvas, sidebar.offsetWidth, 0);
+
+    // Convert the combined canvas to a data URL and trigger download
+    const imgData = combinedCanvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.href = imgData;
+    link.download = 'map_screenshot_with_sidebar.png';  // Filename for the screenshot
+    link.click();
+}}
+
 // Create the "Save Map Screenshot" button
 const saveButton = document.createElement('button');
 saveButton.innerHTML = "Save Map Screenshot";
 saveButton.style.position = "absolute";
-saveButton.style.top = "10px";
+saveButton.style.bottom = "250px";  // Position it under the "Collapse Sidebar" button
 saveButton.style.right = "10px";
 saveButton.style.zIndex = "2";
-
-// Function to capture a screenshot of the map including the sidebar
-function saveMapScreenshot() {{
-    // Create a canvas element to combine the map and sidebar into one image
-    const mapCanvas = map.getCanvas();
-    const sidebar = document.getElementById('sidebar');
-    
-    // Create a new canvas with dimensions to fit both the map and sidebar
-    const totalWidth = mapCanvas.width + sidebar.offsetWidth;
-    const totalHeight = mapCanvas.height;
-    const combinedCanvas = document.createElement('canvas');
-    combinedCanvas.width = totalWidth;
-    combinedCanvas.height = totalHeight;
-    
-    const ctx = combinedCanvas.getContext('2d');
-    
-    // Draw the sidebar onto the combined canvas
-    ctx.drawImage(sidebar, 0, 0, sidebar.offsetWidth, sidebar.offsetHeight);
-    
-    // Draw the map canvas onto the combined canvas next to the sidebar
-    ctx.drawImage(mapCanvas, sidebar.offsetWidth, 0, mapCanvas.width, mapCanvas.height);
-    
-    // Convert the combined canvas to a data URL (image format)
-    const imgData = combinedCanvas.toDataURL('image/png');
-    
-    // Create a link element to trigger the download of the screenshot
-    const link = document.createElement('a');
-    link.href = imgData;
-    link.download = 'map_screenshot_with_sidebar.png';  // File name of the saved screenshot
-    
-    // Simulate a click to download the screenshot
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}}
-
 
 // Set the screenshot capture function on button click
 saveButton.onclick = saveMapScreenshot;
 document.body.appendChild(saveButton);
+
 </script>
 </body>
 </html>
