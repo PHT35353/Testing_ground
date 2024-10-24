@@ -202,12 +202,6 @@ mapbox_map_html = f"""
 
     map.addControl(Draw);
 
-    function getGeoJSONData() {{
-    const drawData = Draw.getAll();  // Get all drawn features in GeoJSON format
-    return drawData;
-}}
-
-
     let landmarkCount = 0;
     let landmarks = [];
     let featureColors = {{}};
@@ -446,6 +440,36 @@ function deleteFeature(e) {{
    
     updateSidebarMeasurements(e)
 }}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+
+// Function to save the map along with drawings and measurements
+function saveMapWithDrawingsAndMeasurements() {{
+    const mapContainer = document.getElementById('map'); // The map container
+    const sidebarContainer = document.getElementById('sidebar'); // The sidebar container
+    
+    // Use html2canvas to capture the map and sidebar as seen on the screen
+    html2canvas(document.body).then(function(canvas) {{
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/png');
+        link.download = 'map_with_drawings_and_sidebar.png';
+        link.click();
+    }}).catch(function(error) {{
+        console.error('Error capturing the map with drawings:', error);
+    }});
+}}
+
+// Add the Save Screenshot button to the page
+const saveButton = document.createElement('button');
+saveButton.innerHTML = "Save Map with Drawings and Measurements";
+saveButton.style.position = "absolute";
+saveButton.style.bottom = "280px";  // Positioned under the Collapse button
+saveButton.style.right = "10px";
+saveButton.style.zIndex = "2";
+
+// Add an event listener to the button that saves the map with drawings when clicked
+saveButton.onclick = saveMapWithDrawingsAndMeasurements;
+document.body.appendChild(saveButton);
 
 </script>
 </body>
