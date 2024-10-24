@@ -714,26 +714,18 @@ def pipe_main():
             st.write(f"Total distance: {total_distance} meters")
 
             # User choice: calculate using total distance or individual distances
-            use_total = st.radio("Use total distance or select individual distances?", ("Total", "Individual"))
+            use_total = st.radio("Use total distance or select individual distances?", ("Total"))
 
             # Choose the pipe material based on inputs
             pipe_material = choose_pipe_material(pressure, temperature, medium)
             st.write(f"Selected Pipe Material: {pipe_material}")
 
             # If the user selects "Total", use the total distance for calculation
-            if use_total == "Total":
+            if  use_total == "Total":
                 st.write(f"Calculating price for total distance: {total_distance} meters")
                 Pipe_finder(pipe_material, pressure, total_distance)
-
-            # If the user selects "Individual", ensure at least one distance is available
-            elif use_total == "Individual":
-                if len(individual_distances) == 0:
-                    st.warning("No individual distances available. Please select at least one line.")
-                else:
-                    for i, distance in enumerate(individual_distances):
-                        st.write(f"Calculating distance: {distance} meters")
-                        Pipe_finder(pipe_material, pressure, distance)
-
+            else:
+                st.write("error")
 
 
 # Run the main function
