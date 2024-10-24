@@ -275,7 +275,7 @@ mapbox_map_html = f"""
     saveButton.style.cursor = "pointer";
 
     loadButton.style.position = "absolute";
-    loadButton.style.bottom = "260px";
+    loadButton.style.bottom = "400px";
     loadButton.style.right = "10px";
     loadButton.style.zIndex = "2";
     loadButton.style.backgroundColor = "white";
