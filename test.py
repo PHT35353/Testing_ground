@@ -466,35 +466,95 @@ function saveStaticMap() {{
 }}
 
 // Function to save the map along with drawings (features)
-function saveScreenshotWithDrawings() {{
-    // Use html2canvas to capture the entire page, including the map and sidebar
-    html2canvas(document.body, {{
-        useCORS: true,  // Enable CORS for loading resources
-        allowTaint: true, // Allow tainted images
-        logging: true  // Enable logging for debugging purposes
-    }}).then(function(canvas) {{
-        // Convert the canvas to a data URL and trigger download
-        const imgData = canvas.toDataURL('image/png');
+function saveMapWithDrawingsAndMeasurements() {{
+    const mapContainer = document.getElementById('map'); // The map container
+    const sidebarContainer = document.getElementById('sidebar'); // The sidebar container
+    
+    // Create a canvas element
+    const canvas = document.createElement('canvas');
+    canvas.width = mapContainer.offsetWidth + sidebarContainer.offsetWidth;
+    canvas.height = Math.max(mapContainer.offsetHeight, sidebarContainer.offsetHeight);
+    const ctx = canvas.getContext('2d');
+
+    // Load the Mapbox static map image
+    const mapImg = new Image();
+    const mapboxStaticUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${{map.getCenter().lng}},${{map.getCenter().lat}},${{map.getZoom()}}/1280x720?access_token= "pk.eyJ1IjoicGFyc2ExMzgzIiwiYSI6ImNtMWRqZmZreDB6MHMyaXNianJpYWNhcGQifQ.hot5D26TtggHFx9IFM-9Vw"`;
+
+    mapImg.crossOrigin = 'Anonymous';
+    mapImg.src = mapboxStaticUrl;
+
+    // When the map image is loaded, draw it on the canvas
+    mapImg.onload = function() {{
+        // Draw the map
+        ctx.drawImage(mapImg, 0, 0, mapContainer.offsetWidth, mapContainer.offsetHeight);
+
+        // Capture the drawings (features)
+        const drawData = Draw.getAll();
+        drawData.features.forEach((feature) => {{
+            if (feature.geometry.type === 'LineString') {{
+                ctx.strokeStyle = feature.properties.color || 'blue';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                feature.geometry.coordinates.forEach((coord, index) => {{
+                    const pixel = map.project([coord[0], coord[1]]);
+                    if (index === 0) {{
+                        ctx.moveTo(pixel.x, pixel.y);
+                    }} else {{
+                        ctx.lineTo(pixel.x, pixel.y);
+                    }}
+                }});
+                ctx.stroke();
+            }} else if (feature.geometry.type === 'Polygon') {{
+                ctx.fillStyle = feature.properties.color || 'rgba(0, 255, 0, 0.5)';
+                ctx.beginPath();
+                feature.geometry.coordinates[0].forEach((coord, index) => {{
+                    const pixel = map.project([coord[0], coord[1]]);
+                    if (index === 0) {{
+                        ctx.moveTo(pixel.x, pixel.y);
+                    }} else {{
+                        ctx.lineTo(pixel.x, pixel.y);
+                    }}
+                }});
+                ctx.closePath();
+                ctx.fill();
+            }}
+        }});
+
+        // Capture the sidebar measurements text
+        const sidebarContent = sidebarContainer.innerText;
+        const sidebarTextLines = sidebarContent.split('\n');
+
+        // Draw the sidebar background
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(mapContainer.offsetWidth, 0, sidebarContainer.offsetWidth, canvas.height);
+
+        // Draw sidebar text (measurements)
+        ctx.fillStyle = '#000000';
+        ctx.font = '16px Arial';
+        sidebarTextLines.forEach((line, index) => {
+            ctx.fillText(line, mapContainer.offsetWidth + 10, 30 + index * 20);
+        });
+
+        // Save the canvas as an image
         const link = document.createElement('a');
-        link.href = imgData;
-        link.download = 'map_with_drawings_and_measurements.png';  // Filename for the screenshot
-        link.click();  // Trigger the download
-    }}).catch(function(error) {{
-        console.error('Screenshot capture failed:', error);  // Log any errors
-    }});
-}}
+        link.href = canvas.toDataURL('image/png');
+        link.download = 'map_with_drawings_and_sidebar.png';
+        link.click();
+    };
+}
 
 // Add the Save Screenshot button to the page
 const saveButton = document.createElement('button');
-saveButton.innerHTML = "Save Map Screenshot with Drawings";
+saveButton.innerHTML = "Save Map with Drawings and Measurements";
 saveButton.style.position = "absolute";
 saveButton.style.bottom = "280px";  // Positioned under the Collapse button
 saveButton.style.right = "10px";
 saveButton.style.zIndex = "2";
 
 // Add an event listener to the button that saves the map with drawings when clicked
-saveButton.onclick = saveScreenshotWithDrawings;
+saveButton.onclick = saveMapWithDrawingsAndMeasurements;
 document.body.appendChild(saveButton);
+
 
 </script>
 </body>
