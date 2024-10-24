@@ -441,8 +441,14 @@ function deleteFeature(e) {{
    
     updateSidebarMeasurements(e)
 }}
+
+</div>
 <button id="saveMapButton">Save Map</button>
+<div id="map"></div>
+
+</div>
 <button id="loadMapButton">Load Map</button>
+<div id="map"></div>
 
 function saveMap() {{
     const mapData = Draw.getAll();  // Get all drawn features from Mapbox
@@ -471,6 +477,7 @@ function saveMap() {{
         console.error("Error saving map data:", error);
     }});
 }}
+document.getElementById("saveMapButton").addEventListener("click", saveMap);
 
 function loadMap() {{
     const user_id = "user1";  // The same user ID used when saving the map
@@ -497,8 +504,6 @@ function loadMap() {{
         console.error("Error loading map data:", error);
     }});
 }}
-
-document.getElementById("saveMapButton").addEventListener("click", saveMap);
 document.getElementById("loadMapButton").addEventListener("click", loadMap);
 </script>
 </body>
