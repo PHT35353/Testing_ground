@@ -478,7 +478,7 @@ function saveMapWithDrawingsAndMeasurements() {{
 
     // Load the Mapbox static map image
     const mapImg = new Image();
-    const mapboxStaticUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${map.getCenter().lng},${map.getCenter().lat},${map.getZoom()}-20/1280x720?access_token=${mapboxgl.accessToken}`;
+    const mapboxStaticUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${{map.getCenter().lng}},${{map.getCenter().lat}},${{map.getZoom()}}-20/1280x720?access_token=${{mapboxgl.accessToken}}`;
 
     // Add error handling for cross-origin restrictions
     mapImg.crossOrigin = 'Anonymous';
