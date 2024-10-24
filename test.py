@@ -175,7 +175,7 @@ mapbox_map_html = f"""
         container: 'map',
         style: 'mapbox://styles/mapbox/satellite-streets-v12',
         center: [{longitude}, {latitude}],
-        zoom: 15,
+        zoom: 20,
         pitch: 45, // For 3D effect
         bearing: 0, // Rotation angle
         antialias: true
