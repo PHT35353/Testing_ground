@@ -741,8 +741,8 @@ def pipe_main():
             st.write(f"Selected Pipe Material: {pipe_material}")
 
             # If the user selects "Total", use the total distance for calculation
-                st.write(f"Calculating price for total distance: {total_distance} meters")
-                Pipe_finder(pipe_material, pressure, total_distance)
+            st.write(f"Calculating price for total distance: {total_distance} meters")
+            Pipe_finder(pipe_material, pressure, total_distance)
 
 
 # Run the main function
