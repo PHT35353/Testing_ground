@@ -163,33 +163,39 @@ mapbox_map_html = f"""
     let featureNames = {{}};
 
    
-   function getSelectedDistances() {{
+   function getSelectedDistances() {
     let selectedDistances = [];
-    document.querySelectorAll('input[type=checkbox]:checked').forEach(checkbox => {{
+    document.querySelectorAll('input[type=checkbox]:checked').forEach(checkbox => {
         selectedDistances.push(parseFloat(checkbox.value));
-    }});
+    });
 
     if (selectedDistances.length > 0) {{
         fetch("https://fastapi-test-production-1ba4.up.railway.app/send-distances/", {{
             method: "POST",
             headers: {{
                 "Content-Type": "application/json",
-            }},
-            body: JSON.stringify({{ distances: selectedDistances }})
+        }},
+            body: JSON.stringify({{ distances: selectedDistances }})  // Send selected distances
         }})
         .then(response => response.json())
-        .then(data => console.log("Distances sent successfully", data))
-        .catch((error) => console.error("Error sending distances", error));
-    }} else {{
+        .then(data => {{
+            console.log("Distances sent successfully", data);
+        }})
+        .catch((error) => {{
+            console.error("Error sending distances", error);
+        }});
+        }} else {{
+        alert("No distances selected.");
         fetch("https://fastapi-test-production-1ba4.up.railway.app/send-distances/", {{
             method: "POST",
             headers: {{
                 "Content-Type": "application/json",
-            }},
-            body: JSON.stringify({{ distances: [0] }})  // No distances selected, send 0
+        }},
+            body: JSON.stringify({{ distances: [0] }})  // Send 0 if no distance selected
         }});
     }}
 }}
+
 
    
    // Attach the updateMeasurements function to Mapbox draw events
@@ -669,29 +675,28 @@ def check_server_status():
         return False
 
 
-
-
-
-
-
-# Main function to run the app
-def pipe_main():
-    st.title("Pipe Selection Tool")
-
-    # Fetch the distances from the backend
-    def get_distance_values():
+def get_distance_values():
+    try:
         response = requests.get("https://fastapi-test-production-1ba4.up.railway.app/get-distances/")
         if response.status_code == 200:
             data = response.json()
             individual_distances = data.get("individual_distances")
             total_distance = data.get("total_distance")
-            if individual_distances and total_distance > 0:
+            # Ensure individual_distances is a list with values
+            if individual_distances and len(individual_distances) > 0 and total_distance > 0:
                 return individual_distances, total_distance
             else:
                 return None, None
         else:
             st.error("Failed to fetch distances from the backend.")
             return None, None
+    except Exception as e:
+        st.error(f"Error fetching distances from backend: {e}")
+        return None, None
+
+# Main function to run the app
+def pipe_main():
+    st.title("Pipe Selection Tool")
 
     # User inputs for pressure, temperature, and medium
     pressure = st.number_input("Enter the pressure (bar):", min_value=0.0, format="%.2f")
@@ -721,11 +726,14 @@ def pipe_main():
                 st.write(f"Calculating price for total distance: {total_distance} meters")
                 Pipe_finder(pipe_material, pressure, total_distance)
 
-            # If the user selects "Individual", use each individual distance for calculation
+            # If the user selects "Individual", ensure at least one distance is available
             elif use_total == "Individual":
-                for i, distance in enumerate(individual_distances):
-                    st.write(f"Calculating for Line {i + 1}: {distance} meters")
-                    Pipe_finder(pipe_material, pressure, distance)
+                if len(individual_distances) == 0:
+                    st.warning("No individual distances available. Please select at least one line.")
+                else:
+                    for i, distance in enumerate(individual_distances):
+                        st.write(f"Calculating for Line {i + 1}: {distance} meters")
+                        Pipe_finder(pipe_material, pressure, distance)
 
 # Function to choose pipe material based on user input
 def choose_pipe_material(P, T, M):
