@@ -443,19 +443,19 @@ function deleteFeature(e) {{
 }}
 
 function saveMapScreenshot() {{
-    // Wait until the map is fully rendered
-    map.once('idle', function() {{
-        // Capture the map view as an image (including the sidebar)
-        html2canvas(document.body).then(function(canvas) {{
-            // Convert the canvas to a data URL and trigger download
-            const imgData = canvas.toDataURL('image/png');
-            const link = document.createElement('a');
-            link.href = imgData;
-            link.download = 'map_screenshot_with_sidebar.png';  // Filename for the screenshot
-            link.click();
-        }});
+    // Use html2canvas to capture the entire page, including the map and sidebar
+    html2canvas(document.body, {{ useCORS: true }}).then(function(canvas) {{
+        // Convert the canvas to a data URL and trigger download
+        const imgData = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.href = imgData;
+        link.download = 'map_screenshot_with_sidebar.png';  // Filename for the screenshot
+        link.click();
+    }}).catch(function(error) {{
+        console.error('Screenshot capture failed:', error);  // Log any errors
     }});
 }}
+
 
 
 
@@ -470,6 +470,7 @@ saveButton.style.zIndex = "2";
 // Set the screenshot capture function on button click
 saveButton.onclick = saveMapScreenshot;
 document.body.appendChild(saveButton);
+
 
 </script>
 </body>
