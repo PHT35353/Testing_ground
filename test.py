@@ -476,7 +476,7 @@ function saveMapWithDrawings() {{
 
     // Prepare the static map API URL with the GeoJSON data as overlays
     const mapboxAccessToken = '{mapbox_access_token}';
-    const mapboxStaticUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/geojson(${{encodeURIComponent(JSON.stringify(drawData))}})/${{center.lng}},${{center.lat}},${zoom},0/1280x720?access_token=${{mapboxAccessToken}}`;
+    const mapboxStaticUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/geojson(${{encodeURIComponent(JSON.stringify(drawData))}})/${{center.lng}},${{center.lat}},${{zoom}},0/1280x720?access_token=${{mapboxAccessToken}}`;
 
     // Request the static map with drawings
     fetch(mapboxStaticUrl)
