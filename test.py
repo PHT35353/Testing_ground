@@ -445,49 +445,57 @@ function deleteFeature(e) {{
     updateSidebarMeasurements(e)
 }}
 
-// Function to capture a screenshot of the map including the sidebar
 function saveMapScreenshot() {{
-    const mapCanvas = map.getCanvas();
-    const sidebar = document.getElementById('sidebar');
-    
-    // Create a new canvas to hold both the map and sidebar
-    const combinedCanvas = document.createElement('canvas');
-    const ctx = combinedCanvas.getContext('2d');
-    
-    // Set the new canvas dimensions to include both sidebar and map
-    combinedCanvas.width = mapCanvas.width + sidebar.offsetWidth;
-    combinedCanvas.height = Math.max(mapCanvas.height, sidebar.offsetHeight);
-    
-    // Create a temporary canvas for the sidebar rendering (as it's not a canvas element)
-    const sidebarCanvas = document.createElement('canvas');
-    sidebarCanvas.width = sidebar.offsetWidth;
-    sidebarCanvas.height = sidebar.offsetHeight;
-    const sidebarCtx = sidebarCanvas.getContext('2d');
-    
-    // Draw the sidebar (using the temporary canvas)
-    sidebarCtx.fillStyle = window.getComputedStyle(sidebar).backgroundColor;
-    sidebarCtx.fillRect(0, 0, sidebar.offsetWidth, sidebar.offsetHeight);
-    sidebarCtx.font = "16px Arial";
-    sidebarCtx.fillStyle = "#000";
-    sidebarCtx.fillText("Measurements", 10, 30); // Example text from the sidebar
-    
-    // Now, merge the map canvas and sidebar
-    ctx.drawImage(sidebarCanvas, 0, 0);
-    ctx.drawImage(mapCanvas, sidebar.offsetWidth, 0);
+    // Wait until the map is fully rendered (including all layers)
+    map.once('render', function() {{
+        const mapCanvas = map.getCanvas();
+        const sidebar = document.getElementById('sidebar');
+        
+        // Create a new canvas to hold both the map and sidebar
+        const combinedCanvas = document.createElement('canvas');
+        const ctx = combinedCanvas.getContext('2d');
+        
+        // Set the new canvas dimensions to include both sidebar and map
+        combinedCanvas.width = mapCanvas.width + sidebar.offsetWidth;
+        combinedCanvas.height = Math.max(mapCanvas.height, sidebar.offsetHeight);
+        
+        // Create a temporary canvas for the sidebar rendering (as it's not a canvas element)
+        const sidebarCanvas = document.createElement('canvas');
+        sidebarCanvas.width = sidebar.offsetWidth;
+        sidebarCanvas.height = sidebar.offsetHeight;
+        const sidebarCtx = sidebarCanvas.getContext('2d');
+        
+        // Draw the sidebar (using the temporary canvas)
+        sidebarCtx.fillStyle = window.getComputedStyle(sidebar).backgroundColor;
+        sidebarCtx.fillRect(0, 0, sidebar.offsetWidth, sidebar.offsetHeight);
+        sidebarCtx.font = "16px Arial";
+        sidebarCtx.fillStyle = "#000";
+        
+        // Capture all the content in the sidebar (customize if needed)
+        const sidebarContent = sidebar.innerHTML.replace(/<[^>]+>/g, ''); // Simplified for demo
+        sidebarCtx.fillText(sidebarContent, 10, 30);
+        
+        // Now, merge the map canvas and sidebar
+        ctx.drawImage(sidebarCanvas, 0, 0);
+        ctx.drawImage(mapCanvas, sidebar.offsetWidth, 0);
 
-    // Convert the combined canvas to a data URL and trigger download
-    const imgData = combinedCanvas.toDataURL('image/png');
-    const link = document.createElement('a');
-    link.href = imgData;
-    link.download = 'map_screenshot_with_sidebar.png';  // Filename for the screenshot
-    link.click();
+        // Convert the combined canvas to a data URL and trigger download
+        const imgData = combinedCanvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.href = imgData;
+        link.download = 'map_screenshot_with_sidebar.png';  // Filename for the screenshot
+        link.click();
+    }});
+
+    // Trigger the map rendering process to ensure all layers are drawn
+    map.triggerRepaint();
 }}
 
-// Create the "Save Map Screenshot" button
+// Reposition the Save Screenshot button below the Collapse Sidebar button
 const saveButton = document.createElement('button');
 saveButton.innerHTML = "Save Map Screenshot";
 saveButton.style.position = "absolute";
-saveButton.style.bottom = "250px";  // Position it under the "Collapse Sidebar" button
+saveButton.style.bottom = "230px";  // Positioned under the Collapse button
 saveButton.style.right = "10px";
 saveButton.style.zIndex = "2";
 
