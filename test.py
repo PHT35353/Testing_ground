@@ -505,7 +505,7 @@ saveButton.style.right = "10px";
 saveButton.style.zIndex = "2";
 
 // Add an event listener to the button that saves the map with drawings when clicked
-saveButton.onclick = saveMapWithDrawingsAndMeasurements;
+saveButton.onclick = saveMapWithDrawings;
 document.body.appendChild(saveButton);
 
 
