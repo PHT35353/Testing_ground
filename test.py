@@ -106,6 +106,7 @@ mapbox_map_html = f"""
     <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.3.0/mapbox-gl-draw.js"></script>
     <link href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.3.0/mapbox-gl-draw.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf/turf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
     <style>
         body {{
             margin: 0;
@@ -238,11 +239,7 @@ mapbox_map_html = f"""
     }}
 }}
 
-
-
-
-   
-   // Attach the updateMeasurements function to Mapbox draw events
+// Attach the updateMeasurements function to Mapbox draw events
 map.on('draw.create', (e) => {{
     // Call the function to get selected distances and send to backend
     getSelectedDistances();
@@ -446,55 +443,20 @@ function deleteFeature(e) {{
 }}
 
 function saveMapScreenshot() {{
-    // Wait until the map is fully rendered (including all layers)
-    map.once('render', function() {{
-        const mapCanvas = map.getCanvas();
-        const sidebar = document.getElementById('sidebar');
-        
-        // Create a new canvas to hold both the map and sidebar
-        const combinedCanvas = document.createElement('canvas');
-        const ctx = combinedCanvas.getContext('2d');
-        
-        // Set the new canvas dimensions to include both sidebar and map
-        combinedCanvas.width = mapCanvas.width + sidebar.offsetWidth;
-        combinedCanvas.height = Math.max(mapCanvas.height, sidebar.offsetHeight);
-        
-        // Create a temporary canvas for the sidebar rendering (as it's not a canvas element)
-        const sidebarCanvas = document.createElement('canvas');
-        sidebarCanvas.width = sidebar.offsetWidth;
-        sidebarCanvas.height = sidebar.offsetHeight;
-        const sidebarCtx = sidebarCanvas.getContext('2d');
-        
-        // Draw the sidebar background
-        sidebarCtx.fillStyle = window.getComputedStyle(sidebar).backgroundColor;
-        sidebarCtx.fillRect(0, 0, sidebar.offsetWidth, sidebar.offsetHeight);
-        
-        // Capture the sidebar text content as it's displayed
-        const sidebarText = sidebar.innerText;  // Get visible text content only
-        sidebarCtx.font = "16px Arial";
-        sidebarCtx.fillStyle = "#000";
-        const sidebarLines = sidebarText.split('\n');
-        
-        // Write the text line by line on the sidebar canvas
-        sidebarLines.forEach((line, index) => {{
-            sidebarCtx.fillText(line, 10, 30 + index * 20);  // Adjust line height as needed
+    // Wait until the map is fully rendered
+    map.once('idle', function() {{
+        // Capture the map view as an image (including the sidebar)
+        html2canvas(document.body).then(function(canvas) {{
+            // Convert the canvas to a data URL and trigger download
+            const imgData = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.href = imgData;
+            link.download = 'map_screenshot_with_sidebar.png';  // Filename for the screenshot
+            link.click();
         }});
-        
-        // Now, merge the map canvas and sidebar
-        ctx.drawImage(sidebarCanvas, 0, 0);
-        ctx.drawImage(mapCanvas, sidebar.offsetWidth, 0);
-
-        // Convert the combined canvas to a data URL and trigger download
-        const imgData = combinedCanvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.href = imgData;
-        link.download = 'map_screenshot_with_sidebar.png';  // Filename for the screenshot
-        link.click();
     }});
-
-    // Trigger the map rendering process to ensure all layers are drawn
-    map.triggerRepaint();
 }}
+
 
 
 // Reposition the Save Screenshot button below the Collapse Sidebar button
