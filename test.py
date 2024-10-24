@@ -34,12 +34,13 @@ st.sidebar.title("Map Controls")
 # Default location set to Amsterdam, Netherlands
 default_location = [52.3676, 4.9041]
 
-# Input fields for latitude and longitude
-latitude = st.sidebar.number_input("Latitude", value=default_location[0])
-longitude = st.sidebar.number_input("Longitude", value=default_location[1])
+# Input fields for latitude and longitude with unique keys
+latitude = st.sidebar.number_input("Latitude", value=default_location[0], key="latitude_input")
+longitude = st.sidebar.number_input("Longitude", value=default_location[1], key="longitude_input")
 
-# Search bar for address search
-address_search = st.sidebar.text_input("Search for address (requires internet connection)")
+# Search bar for address search with a unique key
+address_search = st.sidebar.text_input("Search for address (requires internet connection)", key="address_search")
+
 
 # Button to search for a location
 if st.sidebar.button("Search Location"):
@@ -48,10 +49,11 @@ if st.sidebar.button("Search Location"):
 # Mapbox GL JS API token
 mapbox_access_token = "pk.eyJ1IjoicGFyc2ExMzgzIiwiYSI6ImNtMWRqZmZreDB6MHMyaXNianJpYWNhcGQifQ.hot5D26TtggHFx9IFM-9Vw"
 
+
 # Function to search for an address and automatically fill in the coordinates
 def search_address_and_fill_coordinates():
-    # Input for the address search
-    address_search = st.sidebar.text_input("Search for address (requires internet connection)")
+    # Input for the address search with a unique key
+    address_search = st.sidebar.text_input("Search for address (requires internet connection)", key="address_search_fill")
 
     # If the user searches for an address
     if address_search:
@@ -85,6 +87,7 @@ def search_address_and_fill_coordinates():
             st.sidebar.error(f"Error: {e}")
             return None, None
     return None, None
+
 
 # Call the search function and retrieve the coordinates
 latitude, longitude = search_address_and_fill_coordinates()
