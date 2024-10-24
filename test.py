@@ -472,7 +472,7 @@ function saveScreenshotWithDrawings() {{
         useCORS: true,  // Enable CORS for loading resources
         allowTaint: true, // Allow tainted images
         logging: true  // Enable logging for debugging purposes
-    }}).then(function(canvas) {
+    }}).then(function(canvas) {{
         // Convert the canvas to a data URL and trigger download
         const imgData = canvas.toDataURL('image/png');
         const link = document.createElement('a');
