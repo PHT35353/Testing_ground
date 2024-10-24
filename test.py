@@ -162,19 +162,21 @@ mapbox_map_html = f"""
     let featureColors = {{}};
     let featureNames = {{}};
 
-   
    function getSelectedDistances() {{
     let selectedDistances = [];
     document.querySelectorAll('input[type=checkbox]:checked').forEach(checkbox => {{
         selectedDistances.push(parseFloat(checkbox.value));
     }});
 
+    // Log the distances being sent to the backend
+    console.log("Selected distances: ", selectedDistances);
+
     if (selectedDistances.length > 0) {{
         fetch("https://fastapi-test-production-1ba4.up.railway.app/send-distances/", {{
             method: "POST",
             headers: {{
                 "Content-Type": "application/json",
-        }},
+            }},
             body: JSON.stringify({{ distances: selectedDistances }})  // Send selected distances
         }})
         .then(response => response.json())
@@ -184,17 +186,18 @@ mapbox_map_html = f"""
         .catch((error) => {{
             console.error("Error sending distances", error);
         }});
-        }} else {{
+    }} else {{
         alert("No distances selected.");
         fetch("https://fastapi-test-production-1ba4.up.railway.app/send-distances/", {{
             method: "POST",
             headers: {{
                 "Content-Type": "application/json",
-        }},
+            }},
             body: JSON.stringify({{ distances: [0] }})  // Send 0 if no distance selected
         }});
     }}
 }}
+
 
 
    
