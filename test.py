@@ -346,8 +346,8 @@ map.on('draw.delete', (e) => {{
                     const width = turf.distance([bbox[0], bbox[1]], [bbox[2], bbox[1]]);
                     const height = turf.distance([bbox[0], bbox[1]], [bbox[0], bbox[3]]);
 
-                    let widthUnit = width >= 'm';
-                    let heightUnit = height >= 'm';
+                    let widthUnit = width >= 1 ? 'km' : 'm';
+                    let heightUnit = height >= 1 ? 'km' : 'm';
                     let widthValue = width >= 1 ? width.toFixed(2) : (width * 1000).toFixed(2);
                     let heightValue = height >= 1 ? height.toFixed(2) : (height * 1000).toFixed(2);
 
