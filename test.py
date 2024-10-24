@@ -472,9 +472,6 @@ function saveMap() {{
     }});
 }}
 
-// Add a "Save Map" button
-document.getElementById("saveMapButton").addEventListener("click", saveMap);
-
 function loadMap() {{
     const user_id = "user1";  // The same user ID used when saving the map
 
