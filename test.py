@@ -466,86 +466,35 @@ function saveStaticMap() {{
 }}
 
 // Function to save the map along with drawings (features)
-function saveMapWithDrawingsAndMeasurements() {{
-    const mapContainer = document.getElementById('map'); // The map container
-    const sidebarContainer = document.getElementById('sidebar'); // The sidebar container
+function saveMapWithDrawings() {{
+    // Get the current center, zoom level, and bounding box for the map
+    const center = map.getCenter();
+    const zoom = map.getZoom();
     
-    // Create a canvas element
-    const canvas = document.createElement('canvas');
-    canvas.width = mapContainer.offsetWidth + sidebarContainer.offsetWidth;
-    canvas.height = Math.max(mapContainer.offsetHeight, sidebarContainer.offsetHeight);
-    const ctx = canvas.getContext('2d');
+    // Get all drawn features in GeoJSON format
+    const drawData = Draw.getAll();
 
-    // Load the Mapbox static map image
-    const mapImg = new Image();
-    const mapboxStaticUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${{map.getCenter().lng}},${{map.getCenter().lat}},${{map.getZoom()}}-20/1280x720?access_token=${{mapboxgl.accessToken}}`;
+    // Prepare the static map API URL with the GeoJSON data as overlays
+    const mapboxAccessToken = '{mapbox_access_token}';
+    const mapboxStaticUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/geojson(${{encodeURIComponent(JSON.stringify(drawData))}})/${{center.lng}},${{center.lat}},${zoom},0/1280x720?access_token=${{mapboxAccessToken}}`;
 
-    // Add error handling for cross-origin restrictions
-    mapImg.crossOrigin = 'Anonymous';
-    mapImg.src = mapboxStaticUrl;
-
-    mapImg.onload = function() {{
-        // Draw the map
-        ctx.drawImage(mapImg, 0, 0, mapContainer.offsetWidth, mapContainer.offsetHeight);
-
-        // Capture the drawings (features)
-        const drawData = Draw.getAll();
-        drawData.features.forEach((feature) => {{
-            if (feature.geometry.type === 'LineString') {{
-                ctx.strokeStyle = feature.properties.color || 'blue';
-                ctx.lineWidth = 4;
-                ctx.beginPath();
-                feature.geometry.coordinates.forEach((coord, index) => {{
-                    const pixel = map.project([coord[0], coord[1]]);
-                    if (index === 0) {{
-                        ctx.moveTo(pixel.x, pixel.y);
-                    }} else {{
-                        ctx.lineTo(pixel.x, pixel.y);
-                    }}
-                }});
-                ctx.stroke();
-            }} else if (feature.geometry.type === 'Polygon') {{
-                ctx.fillStyle = feature.properties.color || 'rgba(0, 255, 0, 0.5)';
-                ctx.beginPath();
-                feature.geometry.coordinates[0].forEach((coord, index) => {{
-                    const pixel = map.project([coord[0], coord[1]]);
-                    if (index === 0) {{
-                        ctx.moveTo(pixel.x, pixel.y);
-                    }} else {{
-                        ctx.lineTo(pixel.x, pixel.y);
-                    }}
-                }});
-                ctx.closePath();
-                ctx.fill();
-            }}
+    // Request the static map with drawings
+    fetch(mapboxStaticUrl)
+        .then(response => response.blob())
+        .then(blob => {{
+            // Create a download link for the generated image
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'map_with_drawings.png';
+            link.click(); // Trigger the download
+        }})
+        .catch(error => {{
+            console.error('Error capturing map with drawings:', error);
         }});
-
-        // Capture the sidebar measurements text
-        const sidebarContent = sidebarContainer.innerText;
-        const sidebarTextLines = sidebarContent.split('\n');
-
-        // Draw the sidebar background
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(mapContainer.offsetWidth, 0, sidebarContainer.offsetWidth, canvas.height);
-
-        // Draw sidebar text (measurements)
-        ctx.fillStyle = '#000000';
-        ctx.font = '16px Arial';
-        sidebarTextLines.forEach((line, index) => {{
-            ctx.fillText(line, mapContainer.offsetWidth + 10, 30 + index * 20);
-        }});
-
-        // Save the canvas as an image
-        const link = document.createElement('a');
-        link.href = canvas.toDataURL('image/png');
-        link.download = 'map_with_drawings_and_sidebar.png';
-        link.click();
-    }};
-
-    mapImg.onerror = function() {{
-        console.error('Failed to load map image. Check the URL or cross-origin issues.');
-    }};
 }}
+
+
+        
 
 // Add the Save Screenshot button to the page
 const saveButton = document.createElement('button');
