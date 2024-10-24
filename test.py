@@ -507,12 +507,12 @@ def get_user_inputs1():
 
 # Function to choose pipe material based on user input
 def choose_pipe_material(P, T, M):
-    # Logic to choose pipe material
     if M.lower() in ('water glycol', 'water-glycol', 'pressurized water', 'pressurized-water'):
         if P > 10 and T > 425:
             return 'B1005'
         else:
             return 'B1008'
+
     if P <= 10:
         if T <= 60:
             return 'B1008'
@@ -635,28 +635,19 @@ def B1008_filter(P, distanceValue):
 # Function to choose pipe and filter based on material
 def Pipe_finder(material, P, distanceValue):
     if material == 'B1001':
-        # Filter for B1001 and display the table
-        df_B1001 = B1001_filter(P, distanceValue)
-        df_B1003 = B1003_filter(P, distanceValue)
-        if df_B1001 is not None:
-            st.write("Available pipes from B1001 material:")
-            st.dataframe(df_B1001)
-        if df_B1003 is not None:
-            st.write("Available pipes from B1003 material:")
-            st.dataframe(df_B1003)
-    elif material == 'B1005':
-        df_B1005 = B1005_filter(P, distanceValue)
-        if df_B1005 is not None:
-            st.write("Available pipes from B1005 material:")
-            st.dataframe(df_B1005)
-    elif material == 'B1008':
-        df_B1008 = B1008_filter(P, distanceValue)
-        if df_B1008 is not None:
-            st.write("Available pipes from B1008 material:")
-            st.dataframe(df_B1008)
-    else:
-        st.write("Material not found.")
+        B1001_filter(P, distanceValue)
+        st.write("")
+        B1003_filter(P, distanceValue)
 
+    elif material == 'B1005':
+        B1005_filter(P, distanceValue)
+
+    elif material == 'B1008':
+        B1008_filter(P, distanceValue)
+
+    else:
+        st.write("Material not found")
+        
 # Function to get user inputs including pressure, temperature, medium
 def get_user_inputs():
     # Get pressure from user
@@ -722,9 +713,6 @@ def pipe_main():
         else:
             st.write(f"Individual distances: {individual_distances}")
             st.write(f"Total distance: {total_distance} meters")
-
-            # User choice: calculate using total distance or individual distances
-            use_total = st.radio("Use total distance or select individual distances?", ("Total", "Individual"))
 
             # Choose the pipe material based on inputs
             pipe_material = choose_pipe_material(pressure, temperature, medium)
