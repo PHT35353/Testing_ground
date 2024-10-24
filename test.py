@@ -168,6 +168,9 @@ mapbox_map_html = f"""
     </div>
 </div>
 <button id="toggleSidebar" onclick="toggleSidebar()">Collapse</button>
+<button id="saveMapButton">Save Map</button>
+<button id="loadMapButton">Load Map</button>
+
 <div id="map"></div>
 <script>
     let distanceListenerAdded = false;
@@ -441,9 +444,6 @@ function deleteFeature(e) {{
    
     updateSidebarMeasurements(e)
 }}
-
-<button id="saveMapButton">Save Map</button>
-<button id="loadMapButton">Load Map</button>
 
 document.addEventListener('DOMContentLoaded', function () {{
     
