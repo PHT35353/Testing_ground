@@ -203,11 +203,11 @@ mapbox_map_html = f"""
 
     map.addControl(Draw);
 
-    // Function to get all the drawn features as GeoJSON
     function getGeoJSONData() {{
     const drawData = Draw.getAll();  // Get all drawn features in GeoJSON format
     return drawData;
- }}
+}}
+
 
     let landmarkCount = 0;
     let landmarks = [];
@@ -460,17 +460,50 @@ function saveMapWithDrawingsAndMeasurements() {{
     canvas.height = Math.max(mapContainer.offsetHeight, sidebarContainer.offsetHeight);
     const ctx = canvas.getContext('2d');
 
-    // Load the Mapbox static map image with GeoJSON overlay
-    const geoJSONData = getGeoJSONData();  // Extract drawn features
-    const mapboxStaticUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/geojson(${{encodeURIComponent(JSON.stringify(geoJSONData))}})/${{map.getCenter().lng}},${{map.getCenter().lat}},${{map.getZoom()}},0,60/1280x720?access_token=${mapbox_access_token}`;
-    
+    // Load the Mapbox static map image (without GeoJSON, use normal static map URL)
+    const center = map.getCenter(); // Get current map center
+    const zoom = map.getZoom();  // Get current zoom level
+    const staticMapUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${{center.lng}},${{center.lat}},${{zoom}}/1280x720?access_token=${{mapboxgl.accessToken}}`;
+
     const mapImg = new Image();
     mapImg.crossOrigin = 'Anonymous'; // Avoid CORS issues
-    mapImg.src = mapboxStaticUrl;
+    mapImg.src = staticMapUrl;
 
     mapImg.onload = function() {{
         // Draw the map
         ctx.drawImage(mapImg, 0, 0, mapContainer.offsetWidth, mapContainer.offsetHeight);
+
+        // Now overlay the GeoJSON features (lines, polygons) on the canvas
+        const geoJSONData = getGeoJSONData();
+        geoJSONData.features.forEach((feature) => {{
+            if (feature.geometry.type === 'LineString') {{
+                ctx.strokeStyle = feature.properties.color || 'blue';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                feature.geometry.coordinates.forEach((coord, index) => {{
+                    const pixel = map.project([coord[0], coord[1]]);
+                    if (index === 0) {{
+                        ctx.moveTo(pixel.x, pixel.y);
+                    }} else {{
+                        ctx.lineTo(pixel.x, pixel.y);
+                    }}
+                }});
+                ctx.stroke();
+            }} else if (feature.geometry.type === 'Polygon') {{
+                ctx.fillStyle = feature.properties.color || 'rgba(0, 255, 0, 0.5)';
+                ctx.beginPath();
+                feature.geometry.coordinates[0].forEach((coord, index) => {{
+                    const pixel = map.project([coord[0], coord[1]]);
+                    if (index === 0) {{
+                        ctx.moveTo(pixel.x, pixel.y);
+                    }} else {{
+                        ctx.lineTo(pixel.x, pixel.y);
+                    }}
+                }});
+                ctx.closePath();
+                ctx.fill();
+            }}
+        }});
 
         // Capture the sidebar measurements text
         const sidebarContent = sidebarContainer.innerText;
@@ -498,6 +531,7 @@ function saveMapWithDrawingsAndMeasurements() {{
         console.error('Failed to load map image. Check the URL or cross-origin issues.');
     }};
 }}
+
 
 // Add the Save Screenshot button to the page
 const saveButton = document.createElement('button');
