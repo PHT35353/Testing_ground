@@ -465,15 +465,20 @@ function saveMapScreenshot() {{
         sidebarCanvas.height = sidebar.offsetHeight;
         const sidebarCtx = sidebarCanvas.getContext('2d');
         
-        // Draw the sidebar (using the temporary canvas)
+        // Draw the sidebar background
         sidebarCtx.fillStyle = window.getComputedStyle(sidebar).backgroundColor;
         sidebarCtx.fillRect(0, 0, sidebar.offsetWidth, sidebar.offsetHeight);
+        
+        // Capture the sidebar text content as it's displayed
+        const sidebarText = sidebar.innerText;  // Get visible text content only
         sidebarCtx.font = "16px Arial";
         sidebarCtx.fillStyle = "#000";
+        const sidebarLines = sidebarText.split('\n');
         
-        // Capture all the content in the sidebar (customize if needed)
-        const sidebarContent = sidebar.innerHTML.replace(/<[^>]+>/g, ''); // Simplified for demo
-        sidebarCtx.fillText(sidebarContent, 10, 30);
+        // Write the text line by line on the sidebar canvas
+        sidebarLines.forEach((line, index) => {{
+            sidebarCtx.fillText(line, 10, 30 + index * 20);  // Adjust line height as needed
+        }});
         
         // Now, merge the map canvas and sidebar
         ctx.drawImage(sidebarCanvas, 0, 0);
@@ -490,6 +495,7 @@ function saveMapScreenshot() {{
     // Trigger the map rendering process to ensure all layers are drawn
     map.triggerRepaint();
 }}
+
 
 // Reposition the Save Screenshot button below the Collapse Sidebar button
 const saveButton = document.createElement('button');
