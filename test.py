@@ -478,7 +478,7 @@ function saveMapWithDrawingsAndMeasurements() {{
 
     // Load the Mapbox static map image
     const mapImg = new Image();
-    const mapboxStaticUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${{map.getCenter().lng}},${{map.getCenter().lat}},${{map.getZoom()}}/1280x720?access_token=accessToken`;
+    const mapboxStaticUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${{map.getCenter().lng}},${{map.getCenter().lat}},${{map.getZoom()}},0,60/1280x720?access_token=${{mapboxgl.accessToken}}`;
 
     mapImg.crossOrigin = 'Anonymous';
     mapImg.src = mapboxStaticUrl;
@@ -531,17 +531,30 @@ function saveMapWithDrawingsAndMeasurements() {{
         // Draw sidebar text (measurements)
         ctx.fillStyle = '#000000';
         ctx.font = '16px Arial';
-        sidebarTextLines.forEach((line, index) => {{
+        sidebarTextLines.forEach((line, index) => {
             ctx.fillText(line, mapContainer.offsetWidth + 10, 30 + index * 20);
-        }});
+        });
 
         // Save the canvas as an image
         const link = document.createElement('a');
         link.href = canvas.toDataURL('image/png');
         link.download = 'map_with_drawings_and_sidebar.png';
         link.click();
-    }};
-}}
+    };
+}
+
+// Add the Save Screenshot button to the page
+const saveButton = document.createElement('button');
+saveButton.innerHTML = "Save Map with Drawings and Measurements";
+saveButton.style.position = "absolute";
+saveButton.style.bottom = "280px";  // Positioned under the Collapse button
+saveButton.style.right = "10px";
+saveButton.style.zIndex = "2";
+
+// Add an event listener to the button that saves the map with drawings when clicked
+saveButton.onclick = saveMapWithDrawingsAndMeasurements;
+document.body.appendChild(saveButton);
+
 
 // Add the Save Screenshot button to the page
 const saveButton = document.createElement('button');
