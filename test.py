@@ -203,6 +203,12 @@ mapbox_map_html = f"""
 
     map.addControl(Draw);
 
+    // Function to get all the drawn features as GeoJSON
+    function getGeoJSONData() {{
+    const drawData = Draw.getAll();  // Get all drawn features in GeoJSON format
+    return drawData;
+ }}
+
     let landmarkCount = 0;
     let landmarks = [];
     let featureColors = {{}};
@@ -442,59 +448,56 @@ function deleteFeature(e) {{
     updateSidebarMeasurements(e)
 }}
 
-// Function to save a static map without drawings
-function saveStaticMap() {{
-    const accessToken = "pk.eyJ1IjoicGFyc2ExMzgzIiwiYSI6ImNtMWRqZmZreDB6MHMyaXNianJpYWNhcGQifQ.hot5D26TtggHFx9IFM-9Vw";
-    const center = map.getCenter();  // Get current map center
-    const zoom = map.getZoom();  // Get current zoom level
-
-    // Define the API URL with the center coordinates, zoom, and size of the output image
-    const staticMapUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${{center.lng}},${{center.lat}},${{zoom}}/1280x720?access_token=${{accessToken}}`;
-    
-    // Use fetch to download the image
-    fetch(staticMapUrl)
-    .then(response => response.blob())  // Convert the response to a blob (image)
-    .then(blob => {{
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = 'static_map_image.png';
-        link.click();  // Trigger the download
-    }})
-    .catch(error => {{
-        console.error('Error capturing static map:', error);
-    }});
-}}
 
 // Function to save the map along with drawings (features)
-function saveMapWithDrawings() {{
-    // Get the current center, zoom level, and bounding box for the map
-    const center = map.getCenter();
-    const zoom = map.getZoom();
+function saveMapWithDrawingsAndMeasurements() {{
+    const mapContainer = document.getElementById('map'); // The map container
+    const sidebarContainer = document.getElementById('sidebar'); // The sidebar container
     
-    // Get all drawn features in GeoJSON format
-    const drawData = Draw.getAll();
+    // Create a canvas element
+    const canvas = document.createElement('canvas');
+    canvas.width = mapContainer.offsetWidth + sidebarContainer.offsetWidth;
+    canvas.height = Math.max(mapContainer.offsetHeight, sidebarContainer.offsetHeight);
+    const ctx = canvas.getContext('2d');
 
-    // Prepare the static map API URL with the GeoJSON data as overlays
-    const mapboxAccessToken = '{mapbox_access_token}';
-    const mapboxStaticUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/geojson(${{encodeURIComponent(JSON.stringify(drawData))}})/${{center.lng}},${{center.lat}},${{zoom}},0/1280x720?access_token=${{mapboxAccessToken}}`;
+    // Load the Mapbox static map image with GeoJSON overlay
+    const geoJSONData = getGeoJSONData();  // Extract drawn features
+    const mapboxStaticUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/geojson(${{encodeURIComponent(JSON.stringify(geoJSONData))}})/${{map.getCenter().lng}},${{map.getCenter().lat}},${{map.getZoom()}},0,60/1280x720?access_token=${{mapboxgl.accessToken}}`;
+    
+    const mapImg = new Image();
+    mapImg.crossOrigin = 'Anonymous'; // Avoid CORS issues
+    mapImg.src = mapboxStaticUrl;
 
-    // Request the static map with drawings
-    fetch(mapboxStaticUrl)
-        .then(response => response.blob())
-        .then(blob => {{
-            // Create a download link for the generated image
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'map_with_drawings.png';
-            link.click(); // Trigger the download
-        }})
-        .catch(error => {{
-            console.error('Error capturing map with drawings:', error);
+    mapImg.onload = function() {{
+        // Draw the map
+        ctx.drawImage(mapImg, 0, 0, mapContainer.offsetWidth, mapContainer.offsetHeight);
+
+        // Capture the sidebar measurements text
+        const sidebarContent = sidebarContainer.innerText;
+        const sidebarTextLines = sidebarContent.split('\n');
+
+        // Draw the sidebar background
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(mapContainer.offsetWidth, 0, sidebarContainer.offsetWidth, canvas.height);
+
+        // Draw sidebar text (measurements)
+        ctx.fillStyle = '#000000';
+        ctx.font = '16px Arial';
+        sidebarTextLines.forEach((line, index) => {{
+            ctx.fillText(line, mapContainer.offsetWidth + 10, 30 + index * 20);
         }});
+
+        // Save the canvas as an image
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/png');
+        link.download = 'map_with_drawings_and_sidebar.png';
+        link.click();
+    }};
+
+    mapImg.onerror = function() {{
+        console.error('Failed to load map image. Check the URL or cross-origin issues.');
+    }};
 }}
-
-
-        
 
 // Add the Save Screenshot button to the page
 const saveButton = document.createElement('button');
@@ -505,8 +508,9 @@ saveButton.style.right = "10px";
 saveButton.style.zIndex = "2";
 
 // Add an event listener to the button that saves the map with drawings when clicked
-saveButton.onclick = saveMapWithDrawings;
+saveButton.onclick = saveMapWithDrawingsAndMeasurements;
 document.body.appendChild(saveButton);
+
 
 
 </script>
