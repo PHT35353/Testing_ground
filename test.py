@@ -495,7 +495,7 @@ function saveMapScreenshot() {{
 const saveButton = document.createElement('button');
 saveButton.innerHTML = "Save Map Screenshot";
 saveButton.style.position = "absolute";
-saveButton.style.bottom = "230px";  // Positioned under the Collapse button
+saveButton.style.bottom = "300px";  // Positioned under the Collapse button
 saveButton.style.right = "10px";
 saveButton.style.zIndex = "2";
 
