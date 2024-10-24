@@ -531,17 +531,17 @@ function saveMapWithDrawingsAndMeasurements() {{
         // Draw sidebar text (measurements)
         ctx.fillStyle = '#000000';
         ctx.font = '16px Arial';
-        sidebarTextLines.forEach((line, index) => {
+        sidebarTextLines.forEach((line, index) => {{
             ctx.fillText(line, mapContainer.offsetWidth + 10, 30 + index * 20);
-        });
+        }});
 
         // Save the canvas as an image
         const link = document.createElement('a');
         link.href = canvas.toDataURL('image/png');
         link.download = 'map_with_drawings_and_sidebar.png';
         link.click();
-    };
-}
+    }};
+}}
 
 // Add the Save Screenshot button to the page
 const saveButton = document.createElement('button');
