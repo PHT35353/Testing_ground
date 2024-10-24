@@ -164,39 +164,37 @@ mapbox_map_html = f"""
 
    function getSelectedDistances() {{
     let selectedDistances = [];
+    
+    // Capture all selected distances (from checkboxes)
     document.querySelectorAll('input[type=checkbox]:checked').forEach(checkbox => {{
-        selectedDistances.push(parseFloat(checkbox.value));
+        selectedDistances.push(parseFloat(checkbox.value));  // Collect the values as float numbers
     }});
 
-    // Log the distances being sent to the backend
-    console.log("Selected distances: ", selectedDistances);
-
+    // Check if distances are selected and log them
     if (selectedDistances.length > 0) {{
+        console.log("Selected distances to be sent: ", selectedDistances);  // Log the selected distances
+
+        // Send the selected distances to the FastAPI backend
         fetch("https://fastapi-test-production-1ba4.up.railway.app/send-distances/", {{
             method: "POST",
             headers: {{
                 "Content-Type": "application/json",
             }},
-            body: JSON.stringify({{ distances: selectedDistances }})  // Send selected distances
-        }})
+            body: JSON.stringify({{ distances: selectedDistances ]})  // Sending the distances as a JSON body
+        ]})
         .then(response => response.json())
         .then(data => {{
-            console.log("Distances sent successfully", data);
+            console.log("Distances sent successfully:", data);  // Log success response from the backend
         }})
-        .catch((error) => {{
-            console.error("Error sending distances", error);
+        .catch(error => {{
+            console.error("Error sending distances:", error);  // Log any errors during the fetch process
         }});
     }} else {{
-        alert("No distances selected.");
-        fetch("https://fastapi-test-production-1ba4.up.railway.app/send-distances/", {{
-            method: "POST",
-            headers: {{
-                "Content-Type": "application/json",
-            }},
-            body: JSON.stringify({{ distances: [0] }})  // Send 0 if no distance selected
-        }});
+        console.log("No distances selected.");  // Log when no distances are selected
+        alert("Please select at least one distance to send.");
     }}
 }}
+
 
 
 
@@ -353,6 +351,7 @@ deleteFeature(e);
             }});
              sidebarContent += '<input type="checkbox" id="totalDistance" value="' + totalDistances.reduce((a, b) => a + b, 0) + '" />';
              sidebarContent += '<label for="totalDistance">Total Distance: ' + totalDistances.reduce((a, b) => a + b, 0).toFixed(2) + ' m</label><br>';
+             sidebarContent += '<br><button onclick="getSelectedDistances()">Send Selected Distances</button>';
         }} else {{
             sidebarContent = "<p>No features drawn yet.</p>";
         }}
