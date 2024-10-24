@@ -445,6 +445,41 @@ function deleteFeature(e) {{
     updateSidebarMeasurements(e)
 }}
 
+// Function to capture a screenshot of the map including the sidebar
+function saveMapScreenshot() {{
+    // Create a canvas element to combine the map and sidebar into one image
+    const mapCanvas = map.getCanvas();
+    const sidebar = document.getElementById('sidebar');
+    
+    // Create a new canvas with dimensions to fit both the map and sidebar
+    const totalWidth = mapCanvas.width + sidebar.offsetWidth;
+    const totalHeight = mapCanvas.height;
+    const combinedCanvas = document.createElement('canvas');
+    combinedCanvas.width = totalWidth;
+    combinedCanvas.height = totalHeight;
+    
+    const ctx = combinedCanvas.getContext('2d');
+    
+    // Draw the sidebar onto the combined canvas
+    ctx.drawImage(sidebar, 0, 0, sidebar.offsetWidth, sidebar.offsetHeight);
+    
+    // Draw the map canvas onto the combined canvas next to the sidebar
+    ctx.drawImage(mapCanvas, sidebar.offsetWidth, 0, mapCanvas.width, mapCanvas.height);
+    
+    // Convert the combined canvas to a data URL (image format)
+    const imgData = combinedCanvas.toDataURL('image/png');
+    
+    // Create a link element to trigger the download of the screenshot
+    const link = document.createElement('a');
+    link.href = imgData;
+    link.download = 'map_screenshot_with_sidebar.png';  // File name of the saved screenshot
+    
+    // Simulate a click to download the screenshot
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}}
+
 // Create the "Save Map Screenshot" button
 const saveButton = document.createElement('button');
 saveButton.innerHTML = "Save Map Screenshot";
@@ -456,30 +491,6 @@ saveButton.style.zIndex = "2";
 // Set the screenshot capture function on button click
 saveButton.onclick = saveMapScreenshot;
 document.body.appendChild(saveButton);
-
-// Function to capture a screenshot of the map and drawings
-function saveMapScreenshot() {{
-    // Wait until the map has fully rendered
-    map.once('idle', function() {{
-        // Capture the map view as an image (including the drawn features)
-        const canvas = map.getCanvas();
-        const imgData = canvas.toDataURL('image/png');
-        
-        // Create a link element to trigger the download
-        const link = document.createElement('a');
-        link.href = imgData;
-        link.download = 'map_screenshot.png';  // File name of the saved screenshot
-        
-        // Simulate a click to download the screenshot
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }});
-}}
-
-
-
-
 </script>
 </body>
 </html>
