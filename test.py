@@ -395,10 +395,11 @@ map.on('draw.delete', (e) => {{
         }} else {{
             sidebarContent = "<p>No features drawn yet.</p>";
         }}
-        sidebarContent += '<br><button id="saveMapButton" onclick="saveMap()">Save Map</button>';
-        sidebarContent += '<br><button id="loadMapButton" onclick="loadMap()">Load Map</button>';
         document.getElementById('measurements').innerHTML = sidebarContent;
    }}
+   
+    sidebarContent += '<br><button id="saveMapButton" onclick="saveMap()">Save Map</button>';
+    sidebarContent += '<br><button id="loadMapButton" onclick="loadMap()">Load Map</button>';
     
     function saveMap() {{
     const mapData = Draw.getAll();  // Get all drawn features from Mapbox
