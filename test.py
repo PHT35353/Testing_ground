@@ -677,7 +677,7 @@ def check_server_status():
         return False
 
 
-def get_distance_values():
+def get_distance_value():
     try:
         response = requests.get("https://fastapi-test-production-1ba4.up.railway.app/get-distances/")
         if response.status_code == 200:
