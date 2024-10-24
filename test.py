@@ -181,7 +181,7 @@ mapbox_map_html = f"""
                 "Content-Type": "application/json",
             }},
             body: JSON.stringify({{ distances: selectedDistances ]})  // Sending the distances as a JSON body
-        ]})
+        }})
         .then(response => response.json())
         .then(data => {{
             console.log("Distances sent successfully:", data);  // Log success response from the backend
