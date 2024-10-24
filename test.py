@@ -450,7 +450,8 @@ function deleteFeature(e) {{
 
 
 // Function to save the map along with drawings (features)
-function saveMapWithDrawingsAndMeasurements() {{
+// Function to save the map without drawings (for debugging)
+function saveMapWithoutDrawings() {{
     const mapContainer = document.getElementById('map'); // The map container
     const sidebarContainer = document.getElementById('sidebar'); // The sidebar container
 
@@ -460,7 +461,7 @@ function saveMapWithDrawingsAndMeasurements() {{
     canvas.height = Math.max(mapContainer.offsetHeight, sidebarContainer.offsetHeight);
     const ctx = canvas.getContext('2d');
 
-    // Load the Mapbox static map image (without GeoJSON)
+    // Load the Mapbox static map image (no GeoJSON)
     const center = map.getCenter();  // Get current map center
     const zoom = map.getZoom();  // Get current zoom level
     const staticMapUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${{center.lng}},${{center.lat}},${{zoom}}/1280x720?access_token=${{mapboxgl.accessToken}}`;
@@ -469,44 +470,11 @@ function saveMapWithDrawingsAndMeasurements() {{
     mapImg.crossOrigin = 'Anonymous';  // Avoid CORS issues
     mapImg.src = staticMapUrl;
 
-    // Draw the map once the image has loaded
     mapImg.onload = function() {{
         // Draw the static map image
         ctx.drawImage(mapImg, 0, 0, mapContainer.offsetWidth, mapContainer.offsetHeight);
 
-        // Overlay GeoJSON features (drawn lines, polygons, etc.)
-        const geoJSONData = getGeoJSONData();  // Get drawn features as GeoJSON
-        geoJSONData.features.forEach((feature) => {{
-            if (feature.geometry.type === 'LineString') {{
-                ctx.strokeStyle = feature.properties.color || 'blue';
-                ctx.lineWidth = 4;
-                ctx.beginPath();
-                feature.geometry.coordinates.forEach((coord, index) => {{
-                    const pixel = map.project([coord[0], coord[1]]);
-                    if (index === 0) {{
-                        ctx.moveTo(pixel.x, pixel.y);
-                    }} else {{
-                        ctx.lineTo(pixel.x, pixel.y);
-                    }}
-                }});
-                ctx.stroke();
-            }} else if (feature.geometry.type === 'Polygon') {{
-                ctx.fillStyle = feature.properties.color || 'rgba(0, 255, 0, 0.5)';
-                ctx.beginPath();
-                feature.geometry.coordinates[0].forEach((coord, index) => {{
-                    const pixel = map.project([coord[0], coord[1]]);
-                    if (index === 0) {{
-                        ctx.moveTo(pixel.x, pixel.y);
-                    }} else {{
-                        ctx.lineTo(pixel.x, pixel.y);
-                    }}
-                }});
-                ctx.closePath();
-                ctx.fill();
-            }}
-        }});
-
-        // Capture and draw the sidebar measurements text
+        // Sidebar measurements (if necessary)
         const sidebarContent = sidebarContainer.innerText;
         const sidebarTextLines = sidebarContent.split('\n');
 
@@ -524,29 +492,26 @@ function saveMapWithDrawingsAndMeasurements() {{
         // Save the canvas as an image
         const link = document.createElement('a');
         link.href = canvas.toDataURL('image/png');
-        link.download = 'map_with_drawings_and_sidebar.png';
+        link.download = 'map_without_drawings.png';
         link.click();
     }};
 
-    // Handle map image loading errors
     mapImg.onerror = function() {{
         console.error('Failed to load map image. Check the URL or cross-origin issues.');
     }};
 }}
 
-
-
-// Add the Save Screenshot button to the page
+// Add a button to save the map without drawings for debugging
 const saveButton = document.createElement('button');
-saveButton.innerHTML = "Save Map with Drawings and Measurements";
+saveButton.innerHTML = "Save Map without Drawings";
 saveButton.style.position = "absolute";
 saveButton.style.bottom = "280px";  // Positioned under the Collapse button
 saveButton.style.right = "10px";
 saveButton.style.zIndex = "2";
 
-// Add an event listener to the button that saves the map with drawings when clicked
-saveButton.onclick = saveMapWithDrawingsAndMeasurements;
+saveButton.onclick = saveMapWithoutDrawings;
 document.body.appendChild(saveButton);
+
 
 
 
