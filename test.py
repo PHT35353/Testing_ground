@@ -442,36 +442,57 @@ function deleteFeature(e) {{
     updateSidebarMeasurements(e)
 }}
 
-function saveMapScreenshot() {{
-    try {{
-        // Ensure that the map is fully loaded before taking the screenshot
-        map.once('idle', function() {{
-            // Capture the entire body including the map and sidebar
-            html2canvas(document.body, {{ useCORS: true, logging: true }}).then(function(canvas) {{
-                // Convert the canvas to a data URL
-                const imgData = canvas.toDataURL('image/png');
-                
-                // Create a link element to trigger download
-                const link = document.createElement('a');
-                link.href = imgData;
-                link.download = 'map_screenshot_with_sidebar.png'; // Filename for the screenshot
-                
-                // Trigger the download
-                link.click();
-            }}).catch(function(error) {{
-                console.error('Screenshot capture failed:', error); // Log any errors
-            }});
-        }});
-    }} catch (error) {{
-        console.error('Error capturing map screenshot:', error);
-    }}
+// Function to save a static map without drawings
+function saveStaticMap() {{
+    const accessToken = "pk.eyJ1IjoicGFyc2ExMzgzIiwiYSI6ImNtMWRqZmZreDB6MHMyaXNianJpYWNhcGQifQ.hot5D26TtggHFx9IFM-9Vw";
+    const center = map.getCenter();  // Get current map center
+    const zoom = map.getZoom();  // Get current zoom level
+
+    // Define the API URL with the center coordinates, zoom, and size of the output image
+    const staticMapUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${{center.lng}},${{center.lat}},${{zoom}}/1280x720?access_token=${{accessToken}}`;
+    
+    // Use fetch to download the image
+    fetch(staticMapUrl)
+    .then(response => response.blob())  // Convert the response to a blob (image)
+    .then(blob => {{
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'static_map_image.png';
+        link.click();  // Trigger the download
+    }})
+    .catch(error => {{
+        console.error('Error capturing static map:', error);
+    }});
 }}
 
+// Function to save the map along with drawings (features)
+function saveMapWithDrawings() {{
+    const accessToken = "pk.eyJ1IjoicGFyc2ExMzgzIiwiYSI6ImNtMWRqZmZreDB6MHMyaXNianJpYWNhcGQifQ.hot5D26TtggHFx9IFM-9Vw";
+    const center = map.getCenter();  // Get current map center
+    const zoom = map.getZoom();  // Get current zoom level
+    const geojson = Draw.getAll();  // Get all drawn features (from Mapbox Draw)
 
+    // Convert the GeoJSON to a URL-safe string
+    const geojsonOverlay = encodeURIComponent(JSON.stringify(geojson));
 
+    // Define the Static API URL with the GeoJSON overlay
+    const staticMapWithDrawings = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/geojson(${{geojsonOverlay}})/${{center.lng}},${{center.lat}},${{zoom}}/1280x720?access_token=${{accessToken}}`;
 
+    // Use fetch to download the map with drawings
+    fetch(staticMapWithDrawings)
+    .then(response => response.blob())  // Convert the response to a blob (image)
+    .then(blob => {{
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'static_map_with_drawings.png';
+        link.click();  // Trigger the download
+    }})
+    .catch(error => {{
+        console.error('Error capturing static map with drawings:', error);
+    }});
+}}
 
-// Reposition the Save Screenshot button below the Collapse Sidebar button
+// Add the Save Screenshot button to the page
 const saveButton = document.createElement('button');
 saveButton.innerHTML = "Save Map Screenshot";
 saveButton.style.position = "absolute";
@@ -479,9 +500,10 @@ saveButton.style.bottom = "280px";  // Positioned under the Collapse button
 saveButton.style.right = "10px";
 saveButton.style.zIndex = "2";
 
-// Set the screenshot capture function on button click
-saveButton.onclick = saveMapScreenshot;
+// Add an event listener to the button that saves the map with drawings when clicked
+saveButton.onclick = saveMapWithDrawings;
 document.body.appendChild(saveButton);
+
 
 
 </script>
