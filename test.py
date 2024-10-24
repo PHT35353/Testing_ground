@@ -180,7 +180,7 @@ mapbox_map_html = f"""
             headers: {{
                 "Content-Type": "application/json",
             }},
-            body: JSON.stringify({{ distances: selectedDistances ]})  // Sending the distances as a JSON body
+            body: JSON.stringify({{ distances: selectedDistances }})  // Sending the distances as a JSON body
         }})
         .then(response => response.json())
         .then(data => {{
