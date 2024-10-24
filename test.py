@@ -251,8 +251,7 @@ map.on('draw.update', (e) => {{
 }});
 
 map.on('draw.delete', (e) => {{
-    updateSidebarMeasurements(e);
-    getSelectedDistances();  // Update the distances when lines are deleted
+   deleteFeature(e);
 }});
 
 
