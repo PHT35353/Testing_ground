@@ -106,6 +106,8 @@ mapbox_map_html = f"""
     <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.3.0/mapbox-gl-draw.js"></script>
     <link href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.3.0/mapbox-gl-draw.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf/turf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+
     <style>
         body {{
             margin: 0;
@@ -440,8 +442,6 @@ function deleteFeature(e) {{
    
     updateSidebarMeasurements(e)
 }}
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
 
 // Function to save the map along with drawings and measurements
 function saveMapWithDrawingsAndMeasurements() {{
