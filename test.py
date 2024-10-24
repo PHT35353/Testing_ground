@@ -163,11 +163,11 @@ mapbox_map_html = f"""
     let featureNames = {{}};
 
    
-   function getSelectedDistances() {
+   function getSelectedDistances() {{
     let selectedDistances = [];
-    document.querySelectorAll('input[type=checkbox]:checked').forEach(checkbox => {
+    document.querySelectorAll('input[type=checkbox]:checked').forEach(checkbox => {{
         selectedDistances.push(parseFloat(checkbox.value));
-    });
+    }});
 
     if (selectedDistances.length > 0) {{
         fetch("https://fastapi-test-production-1ba4.up.railway.app/send-distances/", {{
