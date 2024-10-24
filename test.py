@@ -441,6 +441,8 @@ function deleteFeature(e) {{
    
     updateSidebarMeasurements(e)
 }}
+<button id="saveMapButton">Save Map</button>
+<button id="loadMapButton">Load Map</button>
 
 function saveMap() {{
     const mapData = Draw.getAll();  // Get all drawn features from Mapbox
@@ -499,25 +501,13 @@ function loadMap() {{
     }});
 }}
 
-// Add a "Load Map" button
+document.getElementById("saveMapButton").addEventListener("click", saveMap);
 document.getElementById("loadMapButton").addEventListener("click", loadMap);
-
-
-
 </script>
 </body>
 </html>
 """
 components.html(mapbox_map_html, height=600)
-
-if st.sidebar.button("Save Map"):
-    # Call JavaScript to trigger the save function
-    stjs.run_javascript("saveMap();")
-
-if st.sidebar.button("Load Map"):
-    # Call JavaScript to trigger the load function
-    stjs.run_javascript("loadMap();")
-
 
 #the pip price calculation par of the code:
 # Pipe data dictionaries
