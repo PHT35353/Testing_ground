@@ -400,6 +400,58 @@ map.on('draw.delete', (e) => {{
         document.getElementById('measurements').innerHTML = sidebarContent;
    }}
     
+    function saveMap() {{
+    const mapData = Draw.getAll();  // Get all drawn features from Mapbox
+    const user_id = "user1";  // Replace with dynamic user ID if needed
+
+    fetch("https://fastapi-test-production-1ba4.up.railway.app/save-map/", {{
+        method: "POST",
+        headers: {{
+            "Content-Type": "application/json",
+        }},
+        body: JSON.stringify({{
+            user_id: user_id,
+            map_data: mapData
+        }})
+    }})
+    .then(response => response.json())
+    .then(data => {{
+        if (data.status === "success") {{
+            alert("Map data saved successfully!");
+        }} else {{
+            alert("Failed to save map data.");
+        }}
+    }})
+    .catch(error => {{
+        console.error("Error saving map data:", error);
+    }});
+}}
+
+    function loadMap() {{
+    const user_id = "user1";  // Replace with dynamic user ID if needed
+
+    fetch(`https://fastapi-test-production-1ba4.up.railway.app/load-map/${{user_id}}`)
+    .then(response => response.json())
+    .then(data => {{
+        if (data.status === "success") {{
+            const savedMapData = data.map_data;
+
+            // Clear existing drawings before loading new data
+            Draw.deleteAll();
+            
+            // Add the saved features back to the map
+            Draw.add(savedMapData);
+            
+            alert("Map data loaded successfully!");
+        }} else {{
+            alert("No saved map data found.");
+        }}
+    }})
+    .catch(error => {{
+        console.error("Error loading map data:", error);
+    }});
+}}
+    
     function toggleSidebar() {{
         var sidebar = document.getElementById('sidebar');
         if (sidebar.classList.contains('collapsed')) {{
