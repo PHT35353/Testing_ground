@@ -445,6 +445,14 @@ function deleteFeature(e) {{
     updateSidebarMeasurements(e)
 }}
 
+// Create the "Save Map Screenshot" button
+const saveButton = document.createElement('button');
+saveButton.innerHTML = "Save Map Screenshot";
+saveButton.style.position = "absolute";
+saveButton.style.top = "10px";
+saveButton.style.right = "10px";
+saveButton.style.zIndex = "2";
+
 // Function to capture a screenshot of the map including the sidebar
 function saveMapScreenshot() {{
     // Create a canvas element to combine the map and sidebar into one image
@@ -480,13 +488,6 @@ function saveMapScreenshot() {{
     document.body.removeChild(link);
 }}
 
-// Create the "Save Map Screenshot" button
-const saveButton = document.createElement('button');
-saveButton.innerHTML = "Save Map Screenshot";
-saveButton.style.position = "absolute";
-saveButton.style.top = "10px";
-saveButton.style.right = "10px";
-saveButton.style.zIndex = "2";
 
 // Set the screenshot capture function on button click
 saveButton.onclick = saveMapScreenshot;
