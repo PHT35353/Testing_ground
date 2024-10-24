@@ -217,7 +217,6 @@ mapbox_map_html = f"""
         selectedDistances.push(parseFloat(checkbox.value));  // Collect the values as float numbers
     }});
 
-    // Check if distances are selected and log them
     if (selectedDistances.length > 0) {{
         // Send the selected distances to the FastAPI backend
         fetch("https://fastapi-test-production-1ba4.up.railway.app/send-distances/", {{
@@ -229,32 +228,33 @@ mapbox_map_html = f"""
         }})
         .then(response => response.json())
         .then(data => {{
-            console.log("Distances sent successfully:", data);  // Log success response from the backend
+            console.log("Distances sent successfully:", data);
         }})
         .catch(error => {{
-            console.error("Error sending distances:", error);  // Log any errors during the fetch process
+            console.error("Error sending distances:", error);
         }});
     }} else {{
-        console.log("No distances selected.");  // Log when no distances are selected
-       
+        console.log("No distances selected.");
     }}
 }}
 
+
 // Attach the updateMeasurements function to Mapbox draw events
 map.on('draw.create', (e) => {{
-    // Call the function to get selected distances and send to backend
-    getSelectedDistances();
     updateSidebarMeasurements(e);
+    getSelectedDistances();  // Make sure to call this function after a line is drawn
 }});
-
 
 map.on('draw.update', (e) => {{
     updateSidebarMeasurements(e);
+    getSelectedDistances();  // Also send new distances after updating lines
 }});
 
 map.on('draw.delete', (e) => {{
-deleteFeature(e);
-}});  
+    updateSidebarMeasurements(e);
+    getSelectedDistances();  // Update the distances when lines are deleted
+}});
+
 
  function updateSidebarMeasurements(e) {{
         const data = Draw.getAll();
