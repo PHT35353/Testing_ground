@@ -38,12 +38,6 @@ default_location = [52.3676, 4.9041]
 latitude = st.sidebar.number_input("Latitude", value=default_location[0], key="latitude_input")
 longitude = st.sidebar.number_input("Longitude", value=default_location[1], key="longitude_input")
 
-
-
-# Button to search for a location
-if st.sidebar.button("Search Location"):
-    default_location = [latitude, longitude]
-
 # Mapbox GL JS API token
 mapbox_access_token = "pk.eyJ1IjoicGFyc2ExMzgzIiwiYSI6ImNtMWRqZmZreDB6MHMyaXNianJpYWNhcGQifQ.hot5D26TtggHFx9IFM-9Vw"
 
@@ -95,6 +89,9 @@ if latitude is None or longitude is None:
     latitude = default_location[0]  # Default latitude if no search is done
     longitude = default_location[1]  # Default longitude if no search is done
 
+# Button to search for a location
+if st.sidebar.button("Search Location"):
+    default_location = [latitude, longitude]
 
 # HTML and JS for Mapbox with Mapbox Draw plugin to add drawing functionalities
 mapbox_map_html = f"""
@@ -481,28 +478,6 @@ function saveMap() {{
 </html>
 """
 components.html(mapbox_map_html, height=600)
-
-""" Address search using Mapbox Geocoding API
-if address_search:
-    geocode_url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{address_search}.json?access_token={mapbox_access_token}"
-    # Request the geocoded location
-    try:
-        response = requests.get(geocode_url)
-        if response.status_code == 200:
-            geo_data = response.json()
-            if len(geo_data['features']) > 0:
-                coordinates = geo_data['features'][0]['center']
-                latitude, longitude = coordinates[1], coordinates[0]
-                st.sidebar.success(f"Address found: {geo_data['features'][0]['place_name']}")
-                st.sidebar.write(f"Coordinates: Latitude {latitude}, Longitude {longitude}")
-            else:
-                st.sidebar.error("Address not found.")
-        else:
-            st.sidebar.error("Error connecting to the Mapbox API.")
-    except Exception as e:
-        st.sidebar.error(f"Error: {e}")"""
-
-
 
 #the pip price calculation par of the code:
 # Pipe data dictionaries
