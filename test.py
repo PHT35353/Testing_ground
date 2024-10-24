@@ -478,12 +478,12 @@ function saveMapWithDrawingsAndMeasurements() {{
 
     // Load the Mapbox static map image
     const mapImg = new Image();
-    const mapboxStaticUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${{map.getCenter().lng}},${{map.getCenter().lat}},${{map.getZoom()}},0,60/1280x720?access_token=${{mapboxgl.accessToken}}`;
+    const mapboxStaticUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${map.getCenter().lng},${map.getCenter().lat},${map.getZoom()}-20/1280x720?access_token=${mapboxgl.accessToken}`;
 
+    // Add error handling for cross-origin restrictions
     mapImg.crossOrigin = 'Anonymous';
     mapImg.src = mapboxStaticUrl;
 
-    // When the map image is loaded, draw it on the canvas
     mapImg.onload = function() {{
         // Draw the map
         ctx.drawImage(mapImg, 0, 0, mapContainer.offsetWidth, mapContainer.offsetHeight);
@@ -541,10 +541,11 @@ function saveMapWithDrawingsAndMeasurements() {{
         link.download = 'map_with_drawings_and_sidebar.png';
         link.click();
     }};
+
+    mapImg.onerror = function() {{
+        console.error('Failed to load map image. Check the URL or cross-origin issues.');
+    }};
 }}
-
-
-
 
 // Add the Save Screenshot button to the page
 const saveButton = document.createElement('button');
