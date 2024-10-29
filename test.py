@@ -856,9 +856,10 @@ def B1008_filter(P, distanceValue):
     if not available_pipes:
         st.write(f"No pipes found for the pressure of {P} bar.")
     else:
-        st.write(f"Available PVC pipes for {P} bar or higher pressure:")
         df = pd.DataFrame(available_pipes)
-        st.dataframe(df)
+        cheapest_pipe = df.loc[df['Total Cost (Euro)'].idxmin()]
+        st.write(f"Cheapest available 316L stainless steel pipe for {P} bar or higher pressure:")
+        st.dataframe(cheapest_pipe.to_frame().T) 
 
 # Function to choose pipe and filter based on material
 def Pipe_finder(material, P, distanceValue):
