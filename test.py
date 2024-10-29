@@ -1,3 +1,4 @@
+
 import streamlit as st
 import streamlit_javascript as stjs
 import pandas as pd
@@ -559,6 +560,16 @@ B1005_data_dict = {
     'Pressure (bar)': ['202.69', '162.19', '170.01', '134.69', '117.66', '94.14', '85.63', '70.33', '54.7', '49.33', '41.42', '35.19', '31.46', '28.93']
 }
 
+B10051_data_dict = {
+    'Nominal diameter (inches)': ['0.5', '0.75', '1.0', '1.25', '1.5', '2.0', '2.5', '3.0', '4.0', '5.0', '6.0', '8.0', '10.0', '12.0'], 
+    'External diameter (mm)': ['21.34', '26.67', '33.4', '42.16', '48.26', '60.32', '73.02', '88.9', '114.3', '141.3', '168.27', '219.07', '273.05', '323.85'], 
+    'Wall thickness (mm)': ['2.11', '2.11', '2.77', '2.77', '2.77', '2.77', '3.05', '3.05', '3.05', '3.4', '3.4', '3.76', '4.19', '4.57'], 
+    'Weight (kg/m)': ['0.99', '1.27', '2.08', '2.69', '3.1', '3.92', '5.25', '6.44', '8.34', '11.56', '13.82', '19.92', '27.75', '35.96'], 
+    'Cost per m04 (Euro)': ['10.7', '14.0', '18.0', '22.2', '38.6', '24.0', '32.0', '40.0', '57.0', '75.0', '97.4', '104.0', '180.0', '194.0'], 
+    'Cost per m16 (Euro)': ['13.0', '18.0', '23.0', '26.0', '44.9', '34.0', '40.0', '49.0', '64.1', '93.0', '120.0', '133.0', '210.0', '228.0'], 
+    'Pressure (bar)': ['202.69', '162.19', '170.01', '134.69', '117.66', '94.14', '85.63', '70.33', '54.7', '49.33', '41.42', '35.19', '31.46', '28.93'],
+}
+
 B1008_data_dict = {
     'External diameter (mm)': ['25', '32', '40', '50', '50', '63', '63', '75', '75', '90', '90', '110', '110', '125', '125', '160', '160', '200', '200', '250'],
     'Wall thickness (mm)': ['1.5', '1.8', '1.9', '1.8', '2.4', '1.8', '3.0', '2.6', '3.6', '2.7', '4.3', '3.2', '5.3', '3.7', '6.0', '4.7', '7.7', '5.4', '6.3', '7.3'],
@@ -580,24 +591,135 @@ def get_user_inputs1():
 
 # Function to choose pipe material based on user input
 def choose_pipe_material(P, T, M):
-    if M.lower() in ('water glycol', 'water-glycol', 'pressurized water', 'pressurized-water'):
-        if P > 10 and T > 425:
-            return 'B1005'
-        else:
-            return 'B1008'
+   # Medium constraints
+        if M.lower() in ('water glycol', 'water-glycol', 'pressurized water', 'pressurized-water'):
+            if P > 10 and T < 425:
+                return 'B1005'
+            elif P > 10 and 425 <= T < 800:
+                return 'B10051'
+            else:
+                return 'B1008'
 
-    if P <= 10:
-        if T <= 60:
-            return 'B1008'
-        elif 60 <= T <= 425:
-            return 'B1001'
+        # Pipe material choices based on pressure and temperature
+        if P <= 10:
+            if T < 60:
+                material = 'B1008'
+            elif 60 <= T < 425:
+                material = 'B1001'  # Specify both B1001 and B1003 as valid options
+            else:
+                material = 'B1008'
         else:
-            return 'B1008'
-    else:
-        if T <= 425:
-            return 'B1001'
+            if 0 <= T < 425:
+                material = 'B1001'  # Specify both B1001 and B1003 as valid options
+            elif 425 <= T < 600:
+                material = 'B1005'
+            else:
+                material = 'B10051'
+
+        # Medium-specific constraints
+        if M.lower() in ('steam', 'thermal oil', 'thermal-oil'):
+            return material
         else:
-            return 'B1005'
+            # Handle the case for B1003 when applicable
+            if M.lower() in ('water glycol', 'water-glycol', 'pressurized water', 'pressurized-water'):
+                return 'B1008' if material != 'B1005' else material
+            
+def stress_b1001(T): #For T < 413 and not anti corrosion
+
+    B1001_data_dict['External diameter (mm)'] = list(map(float, B1001_data_dict['External diameter (mm)']))
+    B1001_data_dict['Wall thickness (mm)'] = list(map(float, B1001_data_dict['Wall thickness (mm)']))
+    FOS = 3  # Updated to 3
+    Bar_yield_strength = -2.10416*T + 2502.083 #Assumption ASTM A106 grade B
+    Allowable_stress_bar = Bar_yield_strength / FOS
+    
+    x = [Barlow(Allowable_stress_bar, dia, thick) for dia, thick in zip(B1001_data_dict['External diameter (mm)'], B1001_data_dict['Wall thickness (mm)'])]
+    Pressure_allowance = [round(i, 2) for i in x]
+    B1001_data_dict.update({'Pressure (bar)': Pressure_allowance})
+
+    return B1001_data_dict
+
+def stress_b1005_304(T): #Stainless steel pipes corrosion  304L. -58 < T < 810 but goes to only 600
+    B1005_data_dict['External diameter (mm)'] = list(map(float, B1005_data_dict['External diameter (mm)']))
+    B1005_data_dict['Wall thickness (mm)'] = list(map(float, B1005_data_dict['External diameter (mm)']))
+    FOS = 3  # Updated to 3
+
+    match T:
+        case T if 0 <= T < 175:
+            Bar_yield_strength = (-40/11)*T + 2086.3636
+        case T if 175 <= T < 290:
+            Bar_yield_strength = (-34/23)*T + 1708.6956
+        case T if 290 <= T < 460:
+            Bar_yield_strength = (-12/17)*T + 1484.7058
+        case T if 460 <= T < 600:
+            Bar_yield_strength = -1*T + 1620
+
+    Allowable_stress_bar = Bar_yield_strength / FOS 
+
+    x = [Barlow(Allowable_stress_bar, dia, thick) for dia, thick in zip(B1005_data_dict['External diameter (mm)'],  B1005_data_dict['Wall thickness (mm)'])]
+    Pressure_allowance = [round(i, 2) for i in x]
+    B1005_data_dict.update({'Pressure bar': Pressure_allowance})
+
+    return B1005_data_dict
+
+def stress_b1003(T):# For T < 413 and not anti corrosion. This type is ticker than B1001
+    B1003_data_dict['External diameter (mm)'] = list(map(float, B1003_data_dict['External diameter (mm)']))
+    B1003_data_dict['Wall thickness (mm)'] = list(map(float, B1003_data_dict['Wall thickness (mm)']))
+    FOS = 3  # Updated to 3
+    Bar_yield_strength = -2.10416*T + 2502.083 #Assumption ASTM A106 grade B
+    Allowable_stress_bar = Bar_yield_strength / FOS
+    
+    x = [Barlow(Allowable_stress_bar, dia, thick) for dia, thick in zip(B1003_data_dict['External diameter (mm)'],B1003_data_dict['Wall thickness (mm)'])]
+    Pressure_allowance = [round(i, 2) for i in x]
+    B1003_data_dict.update({'Pressure (bar)': Pressure_allowance})
+
+    return B1003_data_dict
+
+def stress_b1005_316L(T): #stainless steel pipes for corrosion that goes to 850 degrees celsius
+    B10051_data_dict['External diameter (mm)'] = list(map(float, B10051_data_dict['External diameter (mm)']))
+    B10051_data_dict['Wall thickness (mm)'] = list(map(float, B10051_data_dict['External diameter (mm)']))
+    FOS = 3  # Updated to 3
+
+    match T:
+        case T if 10 <= T < 80:
+            Bar_yield_strength = (-16/3)*T + 2386.6666
+        case T if 80 <= T < 160:
+            Bar_yield_strength = -3*T + 2200
+        case T if 160 <= T < 270:
+            Bar_yield_strength = (-27/11)*T + 2054.5454
+        case T if 270 <= T < 350:
+            Bar_yield_strength = -1*T + 1760
+        case T if 350 <= T < 580:
+            Bar_yield_strength = (-8/23)*T + 1531.7391
+        case T if 580 <= T < 680:
+            Bar_yield_strength = -1*T + 1910
+        case T if 680 <= T < 850:
+            Bar_yield_strength = (-23/12)*T + 2533.3333
+        
+
+    Allowable_stress_bar = Bar_yield_strength / FOS 
+
+    x = [Barlow(Allowable_stress_bar, dia, thick) for dia, thick in zip(B10051_data_dict['External diameter (mm)'],  B10051_data_dict['Wall thickness (mm)'])]
+    Pressure_allowance = [round(i, 2) for i in x]
+    B10051_data_dict.update({'Pressure bar': Pressure_allowance})
+
+    return B10051_data_dict
+
+
+def stress_calculator(material, T):
+    match material:
+        case 'B1001':
+            stress_b1001(T)
+            stress_b1003(T)
+
+        case 'B1005':
+            stress_b1005_304(T)
+            
+        case 'B1008':
+            pass
+        
+        case 'B10051':
+            stress_b1005_316L(T)
+
 
 # Pipe filter functions for each material type
 def B1001_filter(P, distanceValue):
@@ -607,7 +729,7 @@ def B1001_filter(P, distanceValue):
     B1001_data_dict['Pressure (bar)'] = list(map(float, B1001_data_dict['Pressure (bar)']))
 
     B1001_data_dict['Cost per m (Euro)'] = [cost / 100 for cost in B1001_data_dict['Cost per 100 m (Euro)']]
-    B1001_data_dict['Total Cost (Euro)'] = [p * distanceValue for p in B1001_data_dict['Cost per m (Euro)']]
+    B1001_data_dict['Total Cost (Euro)'] = [round(p * distanceValue, 2) for p in B1001_data_dict['Cost per m (Euro)']]
 
     available_pipes = []
     for i in range(len(B1001_data_dict['Pressure (bar)'])):
@@ -622,9 +744,12 @@ def B1001_filter(P, distanceValue):
     if not available_pipes:
         st.write(f"No pipes found for the pressure of {P} bar.")
     else:
-        st.write(f"Available carbon steel pipes for {P} bar or higher pressure:")
         df = pd.DataFrame(available_pipes)
-        st.dataframe(df)
+        cheapest_pipe = df.loc[df['Total Cost (Euro)'].idxmin()]
+        
+        st.write(f"Cheapest available ASTM A106 grade B carbon steel pipe for {P} bar or higher pressure:")
+        st.dataframe(cheapest_pipe.to_frame().T) 
+
 
 # Similar filters for B1003, B1005, and B1008 (will follow the same pattern)
 def B1003_filter(P, distanceValue):
@@ -634,7 +759,7 @@ def B1003_filter(P, distanceValue):
     B1003_data_dict['Pressure (bar)'] = list(map(float, B1003_data_dict['Pressure (bar)']))
     
     B1003_data_dict['Cost per m (Euro)'] = [cost / 100 for cost in B1003_data_dict['Cost per 100 m (Euro)']]
-    B1003_data_dict['Total Cost (Euro)'] = [p * distanceValue for p in B1003_data_dict['Cost per m (Euro)']]
+    B1003_data_dict['Total Cost (Euro)'] = [round(p * distanceValue, 2) for p in B1003_data_dict['Cost per m (Euro)']]
     
     available_pipes = []
     for i in range(len(B1003_data_dict['Pressure (bar)'])):
@@ -649,9 +774,10 @@ def B1003_filter(P, distanceValue):
     if not available_pipes:
         st.write(f"No pipes found for the pressure of {P} bar.")
     else:
-        st.write(f"Available carbon steel extra strong pipes for {P} bar or higher pressure:")
-        df = pd.DataFrame(available_pipes)
-        st.dataframe(df)
+         df = pd.DataFrame(available_pipes)
+         cheapest_pipe = df.loc[df['Total Cost (Euro)'].idxmin()]
+         st.write(f"Cheapest available ASTM A106 grade B extra strong carbon steel pipe for {P} bar or higher pressure:")
+         st.dataframe(cheapest_pipe.to_frame().T) 
 
 def B1005_filter(P, distanceValue):
     B1005_data_dict['External diameter (mm)'] = list(map(float, B1005_data_dict['External diameter (mm)']))
@@ -660,7 +786,7 @@ def B1005_filter(P, distanceValue):
     B1005_data_dict['Pressure (bar)'] = list(map(float, B1005_data_dict['Pressure (bar)']))
 
     B1005_data_dict['Cost per m (Euro)'] = B1005_data_dict['Cost per m04 (Euro)']
-    B1005_data_dict['Total Cost (Euro)'] = [p * distanceValue for p in B1005_data_dict['Cost per m (Euro)']]
+    B1005_data_dict['Total Cost (Euro)'] = [round(p * distanceValue, 2) for p in B1005_data_dict['Cost per m (Euro)']]
 
     available_pipes = []
     for i in range(len(B1005_data_dict['Pressure (bar)'])):
@@ -675,9 +801,38 @@ def B1005_filter(P, distanceValue):
     if not available_pipes:
         st.write(f"No pipes found for the pressure of {P} bar.")
     else:
-        st.write(f"Available welded stainless steel pipes for {P} bar or higher pressure:")
         df = pd.DataFrame(available_pipes)
-        st.dataframe(df)
+        cheapest_pipe = df.loc[df['Total Cost (Euro)'].idxmin()]
+        st.write(f"Cheapest available 304L stainless steel pipe for {P} bar or higher pressure:")
+        st.dataframe(cheapest_pipe.to_frame().T) 
+
+def B10051_filter(P, distanceValue):
+    B10051_data_dict['External diameter (mm)'] = list(map(float, B10051_data_dict['External diameter (mm)']))
+    B10051_data_dict['Wall thickness (mm)'] = list(map(float, B10051_data_dict['Wall thickness (mm)']))
+    B10051_data_dict['Cost per m04 (Euro)'] = list(map(float, B10051_data_dict['Cost per m04 (Euro)']))
+    B10051_data_dict['Pressure (bar)'] = list(map(float, B10051_data_dict['Pressure (bar)']))
+
+    B10051_data_dict['Cost per m (Euro)'] = B10051_data_dict['Cost per m04 (Euro)']
+    B10051_data_dict['Total Cost (Euro)'] = [round(p * distanceValue, 2) for p in B10051_data_dict['Cost per m (Euro)']]
+
+    available_pipes = []
+    for i in range(len(B10051_data_dict['Pressure (bar)'])):
+        if B10051_data_dict['Pressure (bar)'][i] >= P:
+            available_pipes.append({
+                'External diameter (mm)': B10051_data_dict['External diameter (mm)'][i],
+                'Wall thickness (mm)': B10051_data_dict['Wall thickness (mm)'][i],
+                'Cost per m (Euro)': B10051_data_dict['Cost per m (Euro)'][i],
+                'Total Cost (Euro)': B10051_data_dict['Total Cost (Euro)'][i]
+            })
+
+    if not available_pipes:
+        st.write(f"No pipes found for the pressure of {P} bar.")
+    else:
+        df = pd.DataFrame(available_pipes)
+        cheapest_pipe = df.loc[df['Total Cost (Euro)'].idxmin()]
+        st.write(f"Cheapest available 316L stainless steel pipe for {P} bar or higher pressure:")
+        st.dataframe(cheapest_pipe.to_frame().T) 
+
 
 def B1008_filter(P, distanceValue):
     B1008_data_dict['External diameter (mm)'] = list(map(float, B1008_data_dict['External diameter (mm)']))
@@ -714,6 +869,9 @@ def Pipe_finder(material, P, distanceValue):
 
     elif material == 'B1005':
         B1005_filter(P, distanceValue)
+    
+    elif material == 'B10051':
+        B10051_filter(P, distanceValue)
 
     elif material == 'B1008':
         B1008_filter(P, distanceValue)
@@ -771,9 +929,7 @@ def pipe_main():
     st.title("Pipe Selection Tool")
 
     # User inputs for pressure, temperature, and medium
-    pressure = st.number_input("Enter the pressure (bar):", min_value=0.0, format="%.2f")
-    temperature = st.number_input("Enter the temperature (°C):", min_value=0.0, format="%.2f")
-    medium = st.text_input("Enter the medium:")
+    pressure, temperature, medium = get_user_inputs1()
 
     # Handle the "Get Piping Info" button
     if st.button("Get Piping Info"):
@@ -789,6 +945,8 @@ def pipe_main():
             # Choose the pipe material based on inputs
             pipe_material = choose_pipe_material(pressure, temperature, medium)
             st.write(f"Selected Pipe Material: {pipe_material}")
+
+            stress_calculator(pipe_material, temperature)
 
             # If the user selects "Total", use the total distance for calculation
             st.write(f"Calculating price for total distance: {total_distance} meters")
