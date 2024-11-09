@@ -395,6 +395,7 @@ map.on('draw.delete', (e) => {{
                     if (!featureNames[feature.id]) {{
                         const name = prompt("Enter a name for this line:");
                         featureNames[feature.id] = name || "Line " + (index + 1);
+                        feature.properties.name = featureNames[feature.id];
                     }}
 
                     if (!featureColors[feature.id]) {{
