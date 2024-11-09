@@ -1,4 +1,3 @@
-
 import streamlit as st
 import streamlit_javascript as stjs
 import pandas as pd
@@ -355,14 +354,12 @@ let mapSaved = true;
 map.on('draw.create', (e) => {{
     updateSidebarMeasurements(e);
     getSelectedDistances();  // Make sure to call this function after a line is drawn
-    saveFeatureNames();
     mapSaved = false
 }});
 
 map.on('draw.update', (e) => {{
     updateSidebarMeasurements(e);
     getSelectedDistances();  // Also send new distances after updating lines
-    saveFeatureNames();
     mapSaved = false
 }});
 
