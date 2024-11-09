@@ -315,9 +315,12 @@ mapbox_map_html = f"""
    function getSelectedDistances() {{
     let selectedDistances = [];
     
-    // Capture all selected distances (from checkboxes)
+    // Capture all selected distances (from checkboxes) along with their names
     document.querySelectorAll('input[type=checkbox]:checked').forEach(checkbox => {{
-        selectedDistances.push(parseFloat(checkbox.value));  // Collect the values as float numbers
+        const pipeId = checkbox.id;
+        const pipeDistance = parseFloat(checkbox.value);
+        const pipeName = featureNames[pipeId] || "Unnamed Pipe";
+        selectedPipes.push({{ name: pipeName, distance: pipeDistance }});
     }});
 
     if (selectedDistances.length > 0) {{
@@ -938,19 +941,20 @@ def get_distance_values():
         response = requests.get("https://fastapi-test-production-1ba4.up.railway.app/get-distances/")
         if response.status_code == 200:
             data = response.json()
-            individual_distances = data.get("individual_distances")
-            total_distance = data.get("total_distance")
-            # Ensure individual_distances is a list with values
-            if individual_distances and len(individual_distances) > 0 and total_distance > 0:
-                return individual_distances, total_distance
+            individual_pipes = data.get("individual_pipes", [])
+            total_distance = data.get("total_distance", 0)
+
+            if individual_pipes and total_distance > 0:
+                return individual_pipes, total_distance
             else:
                 return None, None
         else:
-            st.error("Failed to fetch distances from the backend.")
+            st.error("Failed to fetch pipe data from the backend.")
             return None, None
     except Exception as e:
-        st.error(f"Error fetching distances from backend: {e}")
+        st.error(f"Error fetching pipes data from backend: {e}")
         return None, None
+
 
 def pipe_main():
     st.title("Pipe Selection Tool")
@@ -960,24 +964,39 @@ def pipe_main():
 
     # Handle the "Get Piping Info" button
     if st.button("Get Piping Info"):
-        # Fetch distance values
-        individual_distances, total_distance = get_distance_values()
+        # Fetch pipe values
+        individual_pipes, total_distance = get_distance_values()
 
-        if individual_distances is None:
-            st.warning("No line distances available yet. Please draw lines on the map to proceed.")
+        if individual_pipes is None:
+            st.warning("No pipe data available yet. Please draw lines on the map to proceed.")
         else:
-            st.write(f"Individual distances: {individual_distances}")
-            st.write(f"Total distance: {total_distance} meters")
+            st.write("Select pipes for price calculation:")
 
-            # Choose the pipe material based on inputs
-            pipe_material = choose_pipe_material(pressure, temperature, medium)
-            st.write(f"Selected Pipe Material: {pipe_material}")
+            # Add selection checkboxes for each individual pipe
+            selected_pipes = []
+            for pipe in individual_pipes:
+                if st.checkbox(f"{pipe['name']} - {pipe['distance']} meters"):
+                    selected_pipes.append(pipe)
 
-            stress_calculator(pipe_material, temperature)
+            # Option to select total distance
+            if st.checkbox("Use total distance", value=True):
+                selected_pipes = individual_pipes
 
-            # If the user selects "Total", use the total distance for calculation
-            st.write(f"Calculating price for total distance: {total_distance} meters")
-            Pipe_finder(pipe_material, pressure, total_distance)
+            if not selected_pipes:
+                st.warning("Please select at least one pipe for calculation.")
+            else:
+                st.write(f"Selected pipes: {', '.join([pipe['name'] for pipe in selected_pipes])}")
+                total_selected_distance = sum(pipe['distance'] for pipe in selected_pipes)
+                st.write(f"Total selected distance: {total_selected_distance} meters")
+
+                # Choose the pipe material based on inputs
+                pipe_material = choose_pipe_material(pressure, temperature, medium)
+                st.write(f"Selected Pipe Material: {pipe_material}")
+
+                stress_calculator(pipe_material, temperature)
+
+                # Calculate price for selected pipes
+                Pipe_finder(pipe_material, pressure, total_selected_distance)
 
 
 # Run the main function
