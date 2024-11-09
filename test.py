@@ -990,18 +990,34 @@ def pipe_main():
             if not selected_pipes:
                 st.warning("Please select at least one pipe for calculation.")
             else:
-                st.write(f"Selected pipes: {', '.join([pipe['name'] for pipe in selected_pipes])}")
+                # Calculate and display individual pipe information
+                st.write("Selected pipes:")
+                for pipe in selected_pipes:
+                    st.write(f"Pipe Name: {pipe['name']}, Distance: {pipe['distance']} meters")
+
+                    # Choose the pipe material based on inputs
+                    pipe_material = choose_pipe_material(pressure, temperature, medium)
+                    st.write(f"Selected Pipe Material: {pipe_material}")
+
+                    # Calculate the stress for the given material
+                    stress_calculator(pipe_material, temperature)
+
+                    # Calculate price for the current pipe
+                    st.write("Individual Pipe Summary:")
+                    Pipe_finder(pipe_material, pressure, pipe['distance'])
+
+                # Calculate and display total information for all selected pipes
+                st.write("Total Information for Selected Pipes:")
                 total_selected_distance = sum(pipe['distance'] for pipe in selected_pipes)
                 st.write(f"Total selected distance: {total_selected_distance} meters")
 
-                # Choose the pipe material based on inputs
                 pipe_material = choose_pipe_material(pressure, temperature, medium)
                 st.write(f"Selected Pipe Material: {pipe_material}")
 
                 stress_calculator(pipe_material, temperature)
-
-                # Calculate price for selected pipes
+                st.write("Total Pipe Summary:")
                 Pipe_finder(pipe_material, pressure, total_selected_distance)
+
 
 
 # Run the main function
