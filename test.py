@@ -212,6 +212,12 @@ mapbox_map_html = f"""
         const mapData = Draw.getAll();  // Get all drawn features from Mapbox
         const user_id = "user1";  // Replace with dynamic user ID if needed
 
+        // Save feature colors and names
+        mapData.features.forEach((feature) => {{
+            feature.properties.color = featureColors[feature.id] || 'defaultColor';
+            feature.properties.name = featureNames[feature.id] || '';
+        }});
+
         fetch("https://fastapi-test-production-1ba4.up.railway.app/save-map/", {{
             method: "POST",
             headers: {{
@@ -250,6 +256,16 @@ mapbox_map_html = f"""
                 
                 // Add the saved features back to the map
                 Draw.add(savedMapData);
+
+                // Restore feature colors and names
+                savedMapData.features.forEach((feature) => {{
+                    if (feature.properties.color) {{
+                        featureColors[feature.id] = feature.properties.color;
+                    }}
+                    if (feature.properties.name) {{
+                        featureNames[feature.id] = feature.properties.name;
+                    }}
+                }});
                 
                 alert("Map data loaded successfully!");
             }} else {{
@@ -260,6 +276,12 @@ mapbox_map_html = f"""
             console.error("Error loading map data:", error);
         }});
     }}
+
+    window.onbeforeunload = function () {{
+        if (!mapSaved) {{
+            return "You have unsaved changes on the map. Are you sure you want to leave without saving?";
+        }}
+    }};
 
     // Add style and positioning for the buttons
     const saveButton = document.getElementById("saveMapButton");
@@ -319,20 +341,24 @@ mapbox_map_html = f"""
     }}
 }}
 
+let mapSaved = true;
 
 // Attach the updateMeasurements function to Mapbox draw events
 map.on('draw.create', (e) => {{
     updateSidebarMeasurements(e);
     getSelectedDistances();  // Make sure to call this function after a line is drawn
+    mapSaved = false
 }});
 
 map.on('draw.update', (e) => {{
     updateSidebarMeasurements(e);
     getSelectedDistances();  // Also send new distances after updating lines
+    mapSaved = false
 }});
 
 map.on('draw.delete', (e) => {{
    deleteFeature(e);
+   mapSaved = false
 }});
 
 
