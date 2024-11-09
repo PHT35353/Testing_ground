@@ -314,12 +314,11 @@ mapbox_map_html = f"""
 
    function getSelectedDistances() {{
     let selectedPipes = [];
-    
-    // Capture all selected distances (from checkboxes) along with their names
+
     document.querySelectorAll('input[type=checkbox]:checked').forEach(checkbox => {{
         const pipeId = checkbox.id;
         const pipeDistance = parseFloat(checkbox.value);
-        const pipeName = featureNames[pipeId] || "Unnamed Pipe";
+        const pipeName = featureNames[pipeId] || "Unnamed Pipe"; // Use the actual name if available
         selectedPipes.push({{ name: pipeName, distance: pipeDistance }});
     }});
 
@@ -384,9 +383,10 @@ map.on('draw.delete', (e) => {{
                     const startCoord = feature.geometry.coordinates[0];
                     const endCoord = feature.geometry.coordinates[feature.geometry.coordinates.length - 1];
 
-                     let distanceId = 'line' + index;
-                     sidebarContent += '<input type="checkbox" id="' + distanceId + '" value="' + length + '" />';
-                     sidebarContent += '<label for="' + distanceId + '">Line ' + (index + 1) + ': ' + length.toFixed(2) + ' m</label><br>';
+                    let distanceId = 'line' + index;
+                    sidebarContent += '<input type="checkbox" id="' + distanceId + '" value="' + length + '" />';
+                    sidebarContent += '<label for="' + distanceId + '">' + (featureNames[feature.id] || 'Line ' + (index + 1)) + ': ' + length.toFixed(2) + ' m</label><br>';
+
 
                     // Identify landmarks for the start and end points of the line
                     let startLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, startCoord) < 0.01);
@@ -963,8 +963,6 @@ def get_distance_values():
         st.error(f"Error fetching pipes data from backend: {e}")
         return None, None
 
-
-
 def pipe_main():
     st.title("Pipe Selection Tool")
 
@@ -1016,10 +1014,6 @@ def pipe_main():
             stress_calculator(pipe_material, temperature)
             st.markdown("#### Total Pipe Summary:")
             Pipe_finder(pipe_material, pressure, total_selected_distance)
-
-
-
-
 
 # Run the main function
 pipe_main()
