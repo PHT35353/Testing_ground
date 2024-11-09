@@ -949,7 +949,7 @@ def get_distance_values():
         response = requests.get("https://fastapi-test-production-1ba4.up.railway.app/get-distances/")
         if response.status_code == 200:
             data = response.json()
-            individual_pipes = [{"name": pipe['name'], "distance": pipe['distance']} for pipe in data.get("individual_pipes", [])]
+            individual_pipes = [{"name": pipe["name"], "distance": pipe["distance"]} for pipe in data.get("individual_pipes", [])]
             total_distance = data.get("total_distance", 0)
 
             if individual_pipes and total_distance > 0:
@@ -962,6 +962,7 @@ def get_distance_values():
     except Exception as e:
         st.error(f"Error fetching pipes data from backend: {e}")
         return None, None
+
 
 
 def pipe_main():
@@ -1015,6 +1016,7 @@ def pipe_main():
             stress_calculator(pipe_material, temperature)
             st.markdown("#### Total Pipe Summary:")
             Pipe_finder(pipe_material, pressure, total_selected_distance)
+
 
 
 
