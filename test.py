@@ -1,3 +1,4 @@
+
 import streamlit as st
 import streamlit_javascript as stjs
 import pandas as pd
@@ -317,7 +318,6 @@ mapbox_map_html = f"""
     document.querySelectorAll('input[type=checkbox]:checked').forEach(checkbox => {{
         const pipeId = checkbox.id;
         const pipeDistance = parseFloat(checkbox.value);
-        const feature = Draw.get(pipeId);
         const pipeName = featureNames[pipeId] || "Unnamed Pipe"; // Use the actual name if available
         selectedPipes.push({{ name: pipeName, distance: pipeDistance }});
     }});
@@ -384,15 +384,6 @@ map.on('draw.delete', (e) => {{
                     const endCoord = feature.geometry.coordinates[feature.geometry.coordinates.length - 1];
 
                     let distanceId = 'line' + index;
-                    // Prompt for the name only if it is not already set
-                    if (!feature.properties.name) {{
-                        const name = prompt("Enter a name for this line:");
-                        feature.properties.name = name || "Line " + (index + 1);
-                        featureNames[feature.id] = feature.properties.name;
-                    }} else {{
-                        featureNames[feature.id] = feature.properties.name;
-                    }}
-
                     sidebarContent += '<input type="checkbox" id="' + distanceId + '" value="' + length + '" />';
                     sidebarContent += '<label for="' + distanceId + '">' + (featureNames[feature.id] || 'Line ' + (index + 1)) + ': ' + length.toFixed(2) + ' m</label><br>';
 
