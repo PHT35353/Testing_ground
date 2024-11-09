@@ -313,7 +313,7 @@ mapbox_map_html = f"""
     let featureNames = {{}};
 
    function getSelectedDistances() {{
-    let selectedDistances = [];
+    let selectedPipes = [];
     
     // Capture all selected distances (from checkboxes) along with their names
     document.querySelectorAll('input[type=checkbox]:checked').forEach(checkbox => {{
@@ -323,26 +323,31 @@ mapbox_map_html = f"""
         selectedPipes.push({{ name: pipeName, distance: pipeDistance }});
     }});
 
-    if (selectedDistances.length > 0) {{
-        // Send the selected distances to the FastAPI backend
-        fetch("https://fastapi-test-production-1ba4.up.railway.app/send-distances/", {{
+    if (selectedPipes.length > 0) {{
+        // Send the selected pipes (with names and distances) to the FastAPI backend
+        fetch("https://fastapi-test-production-1ba4.up.railway.app/send-pipes/", {{
             method: "POST",
             headers: {{
                 "Content-Type": "application/json",
             }},
-            body: JSON.stringify({{ distances: selectedDistances }})  // Sending the distances as a JSON body
+            body: JSON.stringify({{ pipes: selectedPipes }})  // Sending the pipes as a JSON body
         }})
         .then(response => response.json())
         .then(data => {{
-            console.log("Distances sent successfully:", data);
+            if (data.status === "success") {{
+                console.log("Pipes sent successfully:", data);
+            }} else {{
+                console.error("Failed to send pipes:", data.message);
+            }}
         }})
         .catch(error => {{
-            console.error("Error sending distances:", error);
+            console.error("Error sending pipes:", error);
         }});
     }} else {{
-        console.log("No distances selected.");
+        console.log("No pipes selected.");
     }}
 }}
+
 
 let mapSaved = true;
 
