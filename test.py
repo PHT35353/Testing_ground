@@ -620,7 +620,10 @@ def Barlow(S, D, t):
 def get_user_inputs1():
     pressure = st.number_input("Enter the pressure (bar):", min_value=0.0, format="%.2f")
     temperature = st.number_input("Enter the temperature (°C):", min_value=0.0, format="%.2f")
-    medium = st.text_input("Enter the medium:")
+    medium = st.selectbox(
+    "Select the medium:",
+    ["Steam", "Pressurized Water", "Water Glycol", "Thermal Oil"]
+)
     return pressure, temperature, medium
 
 # Function to choose pipe material based on user input
@@ -946,7 +949,7 @@ def get_distance_values():
         response = requests.get("https://fastapi-test-production-1ba4.up.railway.app/get-distances/")
         if response.status_code == 200:
             data = response.json()
-            individual_pipes = data.get("individual_pipes", [])
+            individual_pipes = [{"name": pipe['name'], "distance": pipe['distance']} for pipe in data.get("individual_pipes", [])]
             total_distance = data.get("total_distance", 0)
 
             if individual_pipes and total_distance > 0:
@@ -975,48 +978,44 @@ def pipe_main():
         if individual_pipes is None:
             st.warning("No pipe data available yet. Please draw lines on the map to proceed.")
         else:
-            st.write("Select pipes for price calculation:")
+            selected_pipes = individual_pipes  # Automatically select all individual pipes
 
-            # Add selection checkboxes for each individual pipe
-            selected_pipes = []
-            for pipe in individual_pipes:
-                if st.checkbox(f"{pipe['name']} - {pipe['distance']} meters"):
-                    selected_pipes.append(pipe)
+            # Calculate and display individual pipe information
+            st.markdown("### Selected Pipes Summary")
+            for pipe in selected_pipes:
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown(f"**Pipe Name:** {pipe['name']}")
+                with col2:
+                    st.markdown(f"**Distance:** {pipe['distance']} meters")
 
-            # Option to select total distance
-            if st.checkbox("Use total distance", value=True):
-                selected_pipes = individual_pipes
-
-            if not selected_pipes:
-                st.warning("Please select at least one pipe for calculation.")
-            else:
-                # Calculate and display individual pipe information
-                st.write("Selected pipes:")
-                for pipe in selected_pipes:
-                    st.write(f"Pipe Name: {pipe['name']}, Distance: {pipe['distance']} meters")
-
-                    # Choose the pipe material based on inputs
-                    pipe_material = choose_pipe_material(pressure, temperature, medium)
-                    st.write(f"Selected Pipe Material: {pipe_material}")
-
-                    # Calculate the stress for the given material
-                    stress_calculator(pipe_material, temperature)
-
-                    # Calculate price for the current pipe
-                    st.write("Individual Pipe Summary:")
-                    Pipe_finder(pipe_material, pressure, pipe['distance'])
-
-                # Calculate and display total information for all selected pipes
-                st.write("Total Information for Selected Pipes:")
-                total_selected_distance = sum(pipe['distance'] for pipe in selected_pipes)
-                st.write(f"Total selected distance: {total_selected_distance} meters")
-
+                # Choose the pipe material based on inputs
                 pipe_material = choose_pipe_material(pressure, temperature, medium)
-                st.write(f"Selected Pipe Material: {pipe_material}")
+                st.markdown(f"**Selected Pipe Material:** {pipe_material}")
 
+                # Calculate the stress for the given material
                 stress_calculator(pipe_material, temperature)
-                st.write("Total Pipe Summary:")
-                Pipe_finder(pipe_material, pressure, total_selected_distance)
+
+                # Calculate price for the current pipe
+                st.markdown("#### Individual Pipe Summary:")
+                Pipe_finder(pipe_material, pressure, pipe['distance'])
+                st.markdown("---")
+
+            # Calculate and display total information for all selected pipes
+            st.markdown("### Total Information for All Selected Pipes")
+            total_selected_distance = sum(pipe['distance'] for pipe in selected_pipes)
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown(f"**Total Selected Distance:** {total_selected_distance} meters")
+            with col2:
+                pipe_material = choose_pipe_material(pressure, temperature, medium)
+                st.markdown(f"**Selected Pipe Material:** {pipe_material}")
+
+            # Calculate the stress for the total selected material
+            stress_calculator(pipe_material, temperature)
+            st.markdown("#### Total Pipe Summary:")
+            Pipe_finder(pipe_material, pressure, total_selected_distance)
+
 
 
 
