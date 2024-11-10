@@ -358,8 +358,7 @@ map.on('draw.create', (e) => {{
         // Send the updated pipe data to the backend
         sendPipeDataToBackend();
     }}
-    
-    Draw.add(feature);
+
     updateSidebarMeasurements(e);
     mapSaved = false;
 }});
@@ -398,41 +397,6 @@ map.on('draw.delete', (e) => {{
    mapSaved = false
 }});
 
- function searchLocation(address) {{
-        const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${{address}}.json?access_token=${{mapbox_access_token}}`;
-
-        fetch(geocodeUrl)
-            .then(response => response.json())
-            .then(data => {{
-                if (data.features.length > 0) {{
-                    // Extract the coordinates of the first result
-                    const coordinates = data.features[0].center;
-                    const placeName = data.features[0].place_name;
-
-                    // Pan the map to the new location without clearing drawings
-                    map.flyTo({{
-                        center: coordinates,
-                        zoom: 15
-                    }});
-
-                    // Notify user
-                    alert(`Location found: ${{placeName}}`);
-                }} else {{
-                    alert('Location not found.');
-                }}
-            }})
-            .catch(error => {{
-                console.error('Error fetching location:', error);
-            }});
-    }}
-
-    // Add a button to search for a location
-    document.getElementById('searchLocationButton').addEventListener('click', () => {{
-        const address = prompt('Enter the address to search:');
-        if (address) {{
-            searchLocation(address);
-        }}
-    }});
 
 function getSelectedDistances() {{
     let selectedPipes = [];
