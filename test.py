@@ -244,7 +244,7 @@ mapbox_map_html = f"""
    function loadMap() {{
     const user_id = "user1";  // Replace with dynamic user ID if needed
 
-    fetch(`https://fastapi-test-production-1ba4.up.railway.app/load-map/${user_id}`)
+    fetch(`https://fastapi-test-production-1ba4.up.railway.app/load-map/${{user_id}}`)
     .then(response => response.json())
     .then(data => {{
         if (data.status === "success") {{
