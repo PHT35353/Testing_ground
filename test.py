@@ -5,7 +5,7 @@ import math
 import requests
 import json
 import streamlit.components.v1 as components
-from streamlit_javascript import st_javascript as stjs 
+from streamlit_javascript import st_javascript as stjs
 import time
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -60,7 +60,7 @@ def search_address_and_fill_coordinates():
                     # Extract coordinates of the first result
                     coordinates = geo_data['features'][0]['center']
                     place_name = geo_data['features'][0]['place_name']
-                    
+
                     # Auto-fill the latitude and longitude fields
                     latitude = coordinates[1]
                     longitude = coordinates[0]
@@ -244,7 +244,7 @@ mapbox_map_html = f"""
     function loadMap() {{
         const user_id = "user1";  // Replace with dynamic user ID if needed
 
-        fetch(https://fastapi-test-production-1ba4.up.railway.app/load-map/${{user_id}})
+        fetch(`https://fastapi-test-production-1ba4.up.railway.app/load-map/${{user_id}}`)
         .then(response => response.json())
         .then(data => {{
             if (data.status === "success") {{
@@ -252,7 +252,7 @@ mapbox_map_html = f"""
 
                 // Clear existing drawings before loading new data
                 Draw.deleteAll();
-                
+
                 // Add the saved features back to the map
                 Draw.add(savedMapData);
 
@@ -265,7 +265,7 @@ mapbox_map_html = f"""
                         featureNames[feature.id] = feature.properties.name;
                     }}
                 }});
-                
+
                 alert("Map data loaded successfully!");
             }} else {{
                 alert("No saved map data found.");
@@ -311,75 +311,14 @@ mapbox_map_html = f"""
     let featureColors = {{}};
     let featureNames = {{}};
 
-let mapSaved = true;
-
-let pipeData = {{}};  // Global object to store pipe data, including names and distances
-
-// Attach the updateMeasurements function to Mapbox draw events
-// Attach the updateMeasurements function to Mapbox draw events
-map.on('draw.create', (e) => {{
-    const feature = e.features[0];
-
-    if (feature.geometry.type === 'LineString') {{
-        // Prompt for the name and save it to feature properties and pipeData
-        const name = prompt("Enter a name for this line:");
-        featureNames[feature.id] = name || Line ${{feature.id}};
-        feature.properties.name = featureNames[feature.id];
-
-        // Calculate distance and save it to pipeData
-        const length = turf.length(feature, {{ units: 'meters' }});
-        pipeData[feature.id] = {{
-            name: featureNames[feature.id],
-            distance: length
-        }};
-
-        // Send the updated pipe data to the backend
-        sendPipeDataToBackend();
-    }}
-
-    updateSidebarMeasurements(e);
-    mapSaved = false;
-}});
-
-map.on('draw.update', (e) => {{
-    e.features.forEach(feature => {{
-        if (feature.geometry.type === 'LineString') {{
-            // Update name if it exists
-            if (!feature.properties.name) {{
-                feature.properties.name = featureNames[feature.id] || Line ${{feature.id}};
-            }}
-
-            // Calculate updated distance and update pipeData
-            const length = turf.length(feature, {{ units: 'meters' }});
-            pipeData[feature.id] = {{
-                name: featureNames[feature.id],
-                distance: length
-            }};
-        }}
-    }});
-
-    // Send the updated pipe data to the backend
-    sendPipeDataToBackend();
-
-    updateSidebarMeasurements(e);
-    mapSaved = false;
-}});
-
-map.on('draw.delete', (e) => {{
-   deleteFeature(e);
-   mapSaved = false
-}});
-
-
-function getSelectedDistances() {{
+   function getSelectedDistances() {{
     let selectedPipes = [];
 
     document.querySelectorAll('input[type=checkbox]:checked').forEach(checkbox => {{
         const pipeId = checkbox.id;
-        if (pipeData[pipeId]) {{
-            const {{ name, distance }} = pipeData[pipeId];
-            selectedPipes.push({{ name: name || 'Unnamed Pipe', distance: distance }});
-        }}
+        const pipeDistance = parseFloat(checkbox.value);
+        const pipeName = featureNames[pipeId] || "Unnamed Pipe"; // Use the actual name if available
+        selectedPipes.push({{ name: pipeName, distance: pipeDistance }});
     }});
 
     if (selectedPipes.length > 0) {{
@@ -389,7 +328,7 @@ function getSelectedDistances() {{
             headers: {{
                 "Content-Type": "application/json",
             }},
-            body: JSON.stringify({{ pipes: selectedPipes }})  // Sending the pipes with names and distances as a JSON body
+            body: JSON.stringify({{ pipes: selectedPipes }})  // Sending the pipes as a JSON body
         }})
         .then(response => response.json())
         .then(data => {{
@@ -407,39 +346,32 @@ function getSelectedDistances() {{
     }}
 }}
 
-// Function to send the pipe data (names and distances) to the FastAPI backend
-function sendPipeDataToBackend() {{
-    const pipeList = Object.keys(pipeData).map(pipeId => ({{
-        name: pipeData[pipeId].name,
-        distance: pipeData[pipeId].distance
-    }}));
 
-    // Send the pipe list to the backend
-    fetch("https://fastapi-test-production-1ba4.up.railway.app/send-pipes/", {{
-        method: "POST",
-        headers: {{
-            "Content-Type": "application/json",
-        }},
-        body: JSON.stringify({{ pipes: pipeList }})
-    }})
-    .then(response => response.json())
-    .then(data => {{
-        if (data.status === "success") {{
-            console.log("Pipes sent successfully:", data);
-        }} else {{
-            console.error("Failed to send pipes:", data.message);
-        }}
-    }})
-    .catch(error => {{
-        console.error("Error sending pipes:", error);
-    }});
-}}
+let mapSaved = true;
+
+// Attach the updateMeasurements function to Mapbox draw events
+map.on('draw.create', (e) => {{
+    updateSidebarMeasurements(e);
+    getSelectedDistances();  // Make sure to call this function after a line is drawn
+    mapSaved = false
+}});
+
+map.on('draw.update', (e) => {{
+    updateSidebarMeasurements(e);
+    getSelectedDistances();  // Also send new distances after updating lines
+    mapSaved = false
+}});
+
+map.on('draw.delete', (e) => {{
+   deleteFeature(e);
+   mapSaved = false
+}});
 
 
  function updateSidebarMeasurements(e) {{
         const data = Draw.getAll();
         let sidebarContent = "";
-        let totalDistances = []; 
+        let totalDistances = [];
         if (data.features.length > 0) {{
             const features = data.features;
             sidebarContent += '<h4>Select lines for price calculation:</h4>';
@@ -470,7 +402,7 @@ function sendPipeDataToBackend() {{
                         featureColors[feature.id] = lineColor || 'blue';
                     }}
 
-                    
+
                     // Update the feature's source when it's moved to ensure the color moves with it
                     map.getSource('line-' + feature.id)?.setData(feature);
 
@@ -490,9 +422,9 @@ function sendPipeDataToBackend() {{
 
                     let distanceUnit = 'm';
                     let distanceValue = length >= 1 ? length.toFixed(2) : (length * 1000).toFixed(2);
-                    
 
-                    
+
+                    sidebarContent += '<p>Line ' + featureNames[feature.id] + ' belongs to ' + (startLandmark?.properties.name || 'Unknown') + ' - ' + (endLandmark?.properties.name || 'Unknown') + ': ' + distanceValue + ' ' + distanceUnit + '</p>';
                 }} else if (feature.geometry.type === 'Polygon') {{
                     if (!feature.properties.name) {{
                         if (!featureNames[feature.id]) {{
@@ -580,7 +512,7 @@ function sendPipeDataToBackend() {{
         }}
         document.getElementById('measurements').innerHTML = sidebarContent;
    }}
-    
+
     function toggleSidebar() {{
         var sidebar = document.getElementById('sidebar');
         if (sidebar.classList.contains('collapsed')) {{
@@ -618,10 +550,10 @@ function deleteFeature(e) {{
             map.removeSource('marker-' + featureId);
         }}
 
-        console.log(Feature ${{featureId}} and its color have been removed.);
+        console.log(`Feature ${{featureId}} and its color have been removed.`);
     }});
 
-   
+
     updateSidebarMeasurements(e)
 }}
 
@@ -663,12 +595,12 @@ B1005_data_dict = {
 }
 
 B10051_data_dict = {
-    'Nominal diameter (inches)': ['0.5', '0.75', '1.0', '1.25', '1.5', '2.0', '2.5', '3.0', '4.0', '5.0', '6.0', '8.0', '10.0', '12.0'], 
-    'External diameter (mm)': ['21.34', '26.67', '33.4', '42.16', '48.26', '60.32', '73.02', '88.9', '114.3', '141.3', '168.27', '219.07', '273.05', '323.85'], 
-    'Wall thickness (mm)': ['2.11', '2.11', '2.77', '2.77', '2.77', '2.77', '3.05', '3.05', '3.05', '3.4', '3.4', '3.76', '4.19', '4.57'], 
-    'Weight (kg/m)': ['0.99', '1.27', '2.08', '2.69', '3.1', '3.92', '5.25', '6.44', '8.34', '11.56', '13.82', '19.92', '27.75', '35.96'], 
-    'Cost per m04 (Euro)': ['10.7', '14.0', '18.0', '22.2', '38.6', '24.0', '32.0', '40.0', '57.0', '75.0', '97.4', '104.0', '180.0', '194.0'], 
-    'Cost per m16 (Euro)': ['13.0', '18.0', '23.0', '26.0', '44.9', '34.0', '40.0', '49.0', '64.1', '93.0', '120.0', '133.0', '210.0', '228.0'], 
+    'Nominal diameter (inches)': ['0.5', '0.75', '1.0', '1.25', '1.5', '2.0', '2.5', '3.0', '4.0', '5.0', '6.0', '8.0', '10.0', '12.0'],
+    'External diameter (mm)': ['21.34', '26.67', '33.4', '42.16', '48.26', '60.32', '73.02', '88.9', '114.3', '141.3', '168.27', '219.07', '273.05', '323.85'],
+    'Wall thickness (mm)': ['2.11', '2.11', '2.77', '2.77', '2.77', '2.77', '3.05', '3.05', '3.05', '3.4', '3.4', '3.76', '4.19', '4.57'],
+    'Weight (kg/m)': ['0.99', '1.27', '2.08', '2.69', '3.1', '3.92', '5.25', '6.44', '8.34', '11.56', '13.82', '19.92', '27.75', '35.96'],
+    'Cost per m04 (Euro)': ['10.7', '14.0', '18.0', '22.2', '38.6', '24.0', '32.0', '40.0', '57.0', '75.0', '97.4', '104.0', '180.0', '194.0'],
+    'Cost per m16 (Euro)': ['13.0', '18.0', '23.0', '26.0', '44.9', '34.0', '40.0', '49.0', '64.1', '93.0', '120.0', '133.0', '210.0', '228.0'],
     'Pressure (bar)': ['202.69', '162.19', '170.01', '134.69', '117.66', '94.14', '85.63', '70.33', '54.7', '49.33', '41.42', '35.19', '31.46', '28.93'],
 }
 
@@ -728,7 +660,7 @@ def choose_pipe_material(P, T, M):
             # Handle the case for B1003 when applicable
             if M.lower() in ('water glycol', 'water-glycol', 'pressurized water', 'pressurized-water'):
                 return 'B1008' if material != 'B1005' else material
-            
+
 def stress_b1001(T): #For T < 413 and not anti corrosion
 
     B1001_data_dict['External diameter (mm)'] = list(map(float, B1001_data_dict['External diameter (mm)']))
@@ -736,7 +668,7 @@ def stress_b1001(T): #For T < 413 and not anti corrosion
     FOS = 3  # Updated to 3
     Bar_yield_strength = -2.10416*T + 2502.083 #Assumption ASTM A106 grade B
     Allowable_stress_bar = Bar_yield_strength / FOS
-    
+
     x = [Barlow(Allowable_stress_bar, dia, thick) for dia, thick in zip(B1001_data_dict['External diameter (mm)'], B1001_data_dict['Wall thickness (mm)'])]
     Pressure_allowance = [round(i, 2) for i in x]
     B1001_data_dict.update({'Pressure (bar)': Pressure_allowance})
@@ -758,7 +690,7 @@ def stress_b1005_304(T): #Stainless steel pipes corrosion  304L. -58 < T < 810 b
         case T if 460 <= T < 600:
             Bar_yield_strength = -1*T + 1620
 
-    Allowable_stress_bar = Bar_yield_strength / FOS 
+    Allowable_stress_bar = Bar_yield_strength / FOS
 
     x = [Barlow(Allowable_stress_bar, dia, thick) for dia, thick in zip(B1005_data_dict['External diameter (mm)'],  B1005_data_dict['Wall thickness (mm)'])]
     Pressure_allowance = [round(i, 2) for i in x]
@@ -772,7 +704,7 @@ def stress_b1003(T):# For T < 413 and not anti corrosion. This type is ticker th
     FOS = 3  # Updated to 3
     Bar_yield_strength = -2.10416*T + 2502.083 #Assumption ASTM A106 grade B
     Allowable_stress_bar = Bar_yield_strength / FOS
-    
+
     x = [Barlow(Allowable_stress_bar, dia, thick) for dia, thick in zip(B1003_data_dict['External diameter (mm)'],B1003_data_dict['Wall thickness (mm)'])]
     Pressure_allowance = [round(i, 2) for i in x]
     B1003_data_dict.update({'Pressure (bar)': Pressure_allowance})
@@ -799,9 +731,9 @@ def stress_b1005_316L(T): #stainless steel pipes for corrosion that goes to 850 
             Bar_yield_strength = -1*T + 1910
         case T if 680 <= T < 850:
             Bar_yield_strength = (-23/12)*T + 2533.3333
-        
 
-    Allowable_stress_bar = Bar_yield_strength / FOS 
+
+    Allowable_stress_bar = Bar_yield_strength / FOS
 
     x = [Barlow(Allowable_stress_bar, dia, thick) for dia, thick in zip(B10051_data_dict['External diameter (mm)'],  B10051_data_dict['Wall thickness (mm)'])]
     Pressure_allowance = [round(i, 2) for i in x]
@@ -818,10 +750,10 @@ def stress_calculator(material, T):
 
         case 'B1005':
             stress_b1005_304(T)
-            
+
         case 'B1008':
             pass
-        
+
         case 'B10051':
             stress_b1005_316L(T)
 
@@ -843,7 +775,7 @@ def B1001_filter(P, distanceValue):
                 'External diameter (mm)': B1001_data_dict['External diameter (mm)'][i],
                 'Wall thickness (mm)': B1001_data_dict['Wall thickness (mm)'][i],
                 'Cost per m (Euro)': B1001_data_dict['Cost per m (Euro)'][i],
-                'Total Cost (Euro)': B1001_data_dict['Total Cost (Euro)'][i] 
+                'Total Cost (Euro)': B1001_data_dict['Total Cost (Euro)'][i]
             })
 
     if not available_pipes:
@@ -851,9 +783,9 @@ def B1001_filter(P, distanceValue):
     else:
         df = pd.DataFrame(available_pipes)
         cheapest_pipe = df.loc[df['Total Cost (Euro)'].idxmin()]
-        
+
         st.write(f"Cheapest available ASTM A106 grade B carbon steel pipe for {P} bar or higher pressure:")
-        st.dataframe(cheapest_pipe.to_frame().T) 
+        st.dataframe(cheapest_pipe.to_frame().T)
 
 
 # Similar filters for B1003, B1005, and B1008 (will follow the same pattern)
@@ -862,10 +794,10 @@ def B1003_filter(P, distanceValue):
     B1003_data_dict['Wall thickness (mm)'] = list(map(float, B1003_data_dict['Wall thickness (mm)']))
     B1003_data_dict['Cost per 100 m (Euro)'] = list(map(float, B1003_data_dict['Cost per 100 m (Euro)']))
     B1003_data_dict['Pressure (bar)'] = list(map(float, B1003_data_dict['Pressure (bar)']))
-    
+
     B1003_data_dict['Cost per m (Euro)'] = [cost / 100 for cost in B1003_data_dict['Cost per 100 m (Euro)']]
     B1003_data_dict['Total Cost (Euro)'] = [round(p * distanceValue, 2) for p in B1003_data_dict['Cost per m (Euro)']]
-    
+
     available_pipes = []
     for i in range(len(B1003_data_dict['Pressure (bar)'])):
         if B1003_data_dict['Pressure (bar)'][i] >= P:
@@ -882,7 +814,7 @@ def B1003_filter(P, distanceValue):
          df = pd.DataFrame(available_pipes)
          cheapest_pipe = df.loc[df['Total Cost (Euro)'].idxmin()]
          st.write(f"Cheapest available ASTM A106 grade B extra strong carbon steel pipe for {P} bar or higher pressure:")
-         st.dataframe(cheapest_pipe.to_frame().T) 
+         st.dataframe(cheapest_pipe.to_frame().T)
 
 def B1005_filter(P, distanceValue):
     B1005_data_dict['External diameter (mm)'] = list(map(float, B1005_data_dict['External diameter (mm)']))
@@ -909,7 +841,7 @@ def B1005_filter(P, distanceValue):
         df = pd.DataFrame(available_pipes)
         cheapest_pipe = df.loc[df['Total Cost (Euro)'].idxmin()]
         st.write(f"Cheapest available 304L stainless steel pipe for {P} bar or higher pressure:")
-        st.dataframe(cheapest_pipe.to_frame().T) 
+        st.dataframe(cheapest_pipe.to_frame().T)
 
 def B10051_filter(P, distanceValue):
     B10051_data_dict['External diameter (mm)'] = list(map(float, B10051_data_dict['External diameter (mm)']))
@@ -936,7 +868,7 @@ def B10051_filter(P, distanceValue):
         df = pd.DataFrame(available_pipes)
         cheapest_pipe = df.loc[df['Total Cost (Euro)'].idxmin()]
         st.write(f"Cheapest available 316L stainless steel pipe for {P} bar or higher pressure:")
-        st.dataframe(cheapest_pipe.to_frame().T) 
+        st.dataframe(cheapest_pipe.to_frame().T)
 
 
 def B1008_filter(P, distanceValue):
@@ -964,7 +896,7 @@ def B1008_filter(P, distanceValue):
         df = pd.DataFrame(available_pipes)
         cheapest_pipe = df.loc[df['Total Cost (Euro)'].idxmin()]
         st.write(f"Cheapest available PVC pipe for {P} bar or higher pressure:")
-        st.dataframe(cheapest_pipe.to_frame().T) 
+        st.dataframe(cheapest_pipe.to_frame().T)
 
 # Function to choose pipe and filter based on material
 def Pipe_finder(material, P, distanceValue):
@@ -975,7 +907,7 @@ def Pipe_finder(material, P, distanceValue):
 
     elif material == 'B1005':
         B1005_filter(P, distanceValue)
-    
+
     elif material == 'B10051':
         B10051_filter(P, distanceValue)
 
@@ -984,7 +916,7 @@ def Pipe_finder(material, P, distanceValue):
 
     else:
         st.write("Material not found")
-        
+
 # Function to get user inputs including pressure, temperature, medium
 def get_user_inputs():
     # Get pressure from user
@@ -1030,7 +962,6 @@ def get_distance_values():
     except Exception as e:
         st.error(f"Error fetching pipes data from backend: {e}")
         return None, None
-
 
 def pipe_main():
     st.title("Pipe Selection Tool")
