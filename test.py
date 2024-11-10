@@ -328,7 +328,7 @@ mapbox_map_html = f"""
             method: "POST",
             headers: {{
                 "Content-Type": "application/json",
-            },
+            }},
             body: JSON.stringify({{ pipes: selectedPipes }})  // Sending the pipes with names and distances as a JSON body
         }})
         .then(response => response.json())
