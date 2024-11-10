@@ -492,7 +492,7 @@ function sendPipeDataToBackend() {{
                     let distanceValue = length >= 1 ? length.toFixed(2) : (length * 1000).toFixed(2);
                     
 
-                    sidebarContent += '<p>Line ' + featureNames[feature.id] + ' belongs to ' + (startLandmark?.properties.name || 'Unknown') + ' - ' + (endLandmark?.properties.name || 'Unknown') + ': ' + distanceValue + ' ' + distanceUnit + '</p>';
+                    
                 }} else if (feature.geometry.type === 'Polygon') {{
                     if (!feature.properties.name) {{
                         if (!featureNames[feature.id]) {{
