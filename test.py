@@ -1,4 +1,3 @@
-
 import streamlit as st
 import streamlit_javascript as stjs
 import pandas as pd
@@ -317,6 +316,7 @@ let mapSaved = true;
 let pipeData = {{}};  // Global object to store pipe data, including names and distances
 
 // Attach the updateMeasurements function to Mapbox draw events
+// Attach the updateMeasurements function to Mapbox draw events
 map.on('draw.create', (e) => {{
     const feature = e.features[0];
 
@@ -332,10 +332,12 @@ map.on('draw.create', (e) => {{
             name: featureNames[feature.id],
             distance: length
         }};
+
+        // Send the updated pipe data to the backend
+        sendPipeDataToBackend();
     }}
 
     updateSidebarMeasurements(e);
-    getSelectedDistances();  // Make sure to call this function after a line is drawn
     mapSaved = false;
 }});
 
@@ -356,8 +358,10 @@ map.on('draw.update', (e) => {{
         }}
     }});
 
+    // Send the updated pipe data to the backend
+    sendPipeDataToBackend();
+
     updateSidebarMeasurements(e);
-    getSelectedDistances();  // Also send new distances after updating lines
     mapSaved = false;
 }});
 
@@ -410,6 +414,33 @@ function getSelectedDistances() {{
     }}
 }}
 
+// Function to send the pipe data (names and distances) to the FastAPI backend
+function sendPipeDataToBackend() {{
+    const pipeList = Object.keys(pipeData).map(pipeId => ({{
+        name: pipeData[pipeId].name,
+        distance: pipeData[pipeId].distance
+    }}));
+
+    // Send the pipe list to the backend
+    fetch("https://fastapi-test-production-1ba4.up.railway.app/send-pipes/", {{
+        method: "POST",
+        headers: {{
+            "Content-Type": "application/json",
+        }},
+        body: JSON.stringify({{ pipes: pipeList }})
+    }})
+    .then(response => response.json())
+    .then(data => {{
+        if (data.status === "success") {{
+            console.log("Pipes sent successfully:", data);
+        }} else {{
+            console.error("Failed to send pipes:", data.message);
+        }}
+    }})
+    .catch(error => {{
+        console.error("Error sending pipes:", error);
+    }});
+}}
 
 
  function updateSidebarMeasurements(e) {{
