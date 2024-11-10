@@ -209,7 +209,7 @@ mapbox_map_html = f"""
         }});
     }}
     
-    window.centerMap = centerMap;
+   
     
      // Function to save the map data to the backend
     function saveMap() {{
