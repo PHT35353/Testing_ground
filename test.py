@@ -61,14 +61,10 @@ def search_address_and_fill_coordinates():
                     coordinates = geo_data['features'][0]['center']
                     place_name = geo_data['features'][0]['place_name']
                     
-                    # Auto-fill the latitude and longitude fields
-                    latitude = coordinates[1]
-                    longitude = coordinates[0]
-
                     # Notify user and auto-fill the coordinates in the Streamlit sidebar
                     st.sidebar.success(f"Address found: {place_name}")
-                    st.sidebar.write(f"Coordinates: Latitude {latitude}, Longitude {longitude}")
-                    return latitude, longitude  # Return the found coordinates
+                    st.sidebar.write(f"Coordinates: Latitude {coordinates[1]}, Longitude {coordinates[0]}")
+                    return coordinates[1], coordinates[0]  # Return the found coordinates
                 else:
                     st.sidebar.error("Address not found.")
                     return None, None
@@ -80,14 +76,13 @@ def search_address_and_fill_coordinates():
             return None, None
     return None, None
 
-
-# Call the search function and retrieve the coordinates
 latitude, longitude = search_address_and_fill_coordinates()
 
-# Set the default location in case no search result is found
-if latitude is None or longitude is None:
-    latitude = default_location[0]  # Default latitude if no search is done
-    longitude = default_location[1]  # Default longitude if no search is done
+if latitude is not None and longitude is not None:
+    # Send a JavaScript command to center the map on the new coordinates without deleting existing features
+    stjs(f"""
+        centerMap({latitude}, {longitude});
+    """)
 
 # Button to search for a location
 if st.sidebar.button("Search Location"):
@@ -206,6 +201,16 @@ mapbox_map_html = f"""
 
     map.addControl(Draw);
 
+    function centerMap(lat, lng) {{
+        map.flyTo({{
+            center: [lng, lat],
+            zoom: 15,  // Adjust the zoom level as needed
+            essential: true // This ensures the transition is smooth
+        }});
+    }}
+    
+    window.centerMap = centerMap;
+    
      // Function to save the map data to the backend
     function saveMap() {{
         const mapData = Draw.getAll();  // Get all drawn features from Mapbox
