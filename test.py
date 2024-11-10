@@ -72,11 +72,16 @@ def search_address_and_fill_coordinates():
                     save_script = f"""
                     <script>
                         saveDrawingsBeforeLocationChange(); // Save current drawings
-                        map.setCenter([{longitude}, {latitude}]); // Set new map center
-                        restoreDrawingsAfterLocationChange(); // Restore previous drawings
+                        setTimeout(function() {{
+                            map.setCenter([{longitude}, {latitude}]); // Set new map center
+                            setTimeout(function() {{
+                                restoreDrawingsAfterLocationChange(); // Restore previous drawings after centering
+                            }}, 1000);
+                        }}, 500);
                     </script>
                     """
                     st.components.v1.html(save_script)
+
                     
                     return latitude, longitude  # Return the found coordinates
                 else:
@@ -219,17 +224,18 @@ mapbox_map_html = f"""
     let saved_map_features = []; // Global variable to store features before searching
 
     function saveDrawingsBeforeLocationChange() {{
-        const mapData = Draw.getAll();
-        if (mapData.features.length > 0) {{
-            saved_map_features = mapData.features; // Store the features globally
-        }}
+    const mapData = Draw.getAll();
+    if (mapData.features.length > 0) {{
+        saved_map_features = mapData.features; // Store the features globally
     }}
+ }}
+
 
    function restoreDrawingsAfterLocationChange() {{
-       if (saved_map_features.length > 0) {{
-           Draw.add({{ "type": "FeatureCollection", "features": saved_map_features }});
-       }}
+    if (saved_map_features.length > 0) {{
+        Draw.add({{ "type": "FeatureCollection", "features": saved_map_features }});
     }}
+}}
 
 
      // Function to save the map data to the backend
