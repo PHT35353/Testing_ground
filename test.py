@@ -61,10 +61,14 @@ def search_address_and_fill_coordinates():
                     coordinates = geo_data['features'][0]['center']
                     place_name = geo_data['features'][0]['place_name']
                     
+                    # Auto-fill the latitude and longitude fields
+                    latitude = coordinates[1]
+                    longitude = coordinates[0]
+
                     # Notify user and auto-fill the coordinates in the Streamlit sidebar
                     st.sidebar.success(f"Address found: {place_name}")
-                    st.sidebar.write(f"Coordinates: Latitude {coordinates[1]}, Longitude {coordinates[0]}")
-                    return coordinates[1], coordinates[0]  # Return the found coordinates
+                    st.sidebar.write(f"Coordinates: Latitude {latitude}, Longitude {longitude}")
+                    return latitude, longitude  # Return the found coordinates
                 else:
                     st.sidebar.error("Address not found.")
                     return None, None
@@ -76,13 +80,14 @@ def search_address_and_fill_coordinates():
             return None, None
     return None, None
 
+
+# Call the search function and retrieve the coordinates
 latitude, longitude = search_address_and_fill_coordinates()
 
-if latitude is not None and longitude is not None:
-    # Send a JavaScript command to center the map on the new coordinates without deleting existing features
-    stjs(f"""
-        centerMap({latitude}, {longitude});
-    """)
+# Set the default location in case no search result is found
+if latitude is None or longitude is None:
+    latitude = default_location[0]  # Default latitude if no search is done
+    longitude = default_location[1]  # Default longitude if no search is done
 
 # Button to search for a location
 if st.sidebar.button("Search Location"):
@@ -239,7 +244,7 @@ mapbox_map_html = f"""
    function loadMap() {{
     const user_id = "user1";  // Replace with dynamic user ID if needed
 
-    fetch(`https://fastapi-test-production-1ba4.up.railway.app/load-map/${{user_id}}`)
+    fetch(https://fastapi-test-production-1ba4.up.railway.app/load-map/${{user_id}})
     .then(response => response.json())
     .then(data => {{
         if (data.status === "success") {{
@@ -336,7 +341,7 @@ map.on('draw.create', (e) => {{
 
         // Assign default name if none is provided
         if (!name || name.trim() === "") {{
-            featureNames[feature.id] = `Unnamed Pipe ${{unnamedPipeCount}}`;
+            featureNames[feature.id] = Unnamed Pipe ${{unnamedPipeCount}};
             unnamedPipeCount++; // Increment unnamed pipe count
         }} else {{
             featureNames[feature.id] = name;
@@ -364,7 +369,7 @@ map.on('draw.update', (e) => {{
             // Update name if it exists
             if (!feature.properties.name) {{
                 if (!featureNames[feature.id]) {{
-                    featureNames[feature.id] = `Unnamed Pipe ${{unnamedPipeCount}}`;
+                    featureNames[feature.id] = Unnamed Pipe ${{unnamedPipeCount}};
                     unnamedPipeCount++;
                 }}
                 feature.properties.name = featureNames[feature.id];
@@ -640,7 +645,7 @@ function deleteFeature(e) {{
             map.removeSource('marker-' + featureId);
         }}
 
-        console.log(`Feature ${{featureId}} and its color have been removed.`);
+        console.log(Feature ${{featureId}} and its color have been removed.);
     }});
 
    
