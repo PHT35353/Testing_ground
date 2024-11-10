@@ -189,6 +189,17 @@ mapbox_map_html = f"""
     map.addControl(new mapboxgl.NavigationControl());
     map.addControl(new mapboxgl.FullscreenControl());
 
+    let isFullscreen = false;
+
+fullscreenControl.on('enter', () => {{
+    isFullscreen = true;
+}});
+
+fullscreenControl.on('exit', () => {{
+    isFullscreen = false;
+}});
+
+
     // Enable rotation and pitch adjustments using right-click
     map.dragRotate.enable();
     map.touchZoomRotate.enableRotation();
@@ -359,6 +370,16 @@ map.on('draw.create', (e) => {{
         sendPipeDataToBackend();
     }}
 
+    if (isFullscreen) {{
+        const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+        if (!fullscreenElement) {{
+            map.getContainer().requestFullscreen().catch((err) => {{
+                console.error("Error attempting to enter fullscreen mode:", err);
+            }});
+          }}
+       }}
+   }});
+
     updateSidebarMeasurements(e);
     mapSaved = false;
 }});
@@ -383,6 +404,16 @@ map.on('draw.update', (e) => {{
             }};
         }}
     }});
+
+    if (isFullscreen) {{
+        const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+        if (!fullscreenElement) {{
+            map.getContainer().requestFullscreen().catch((err) => {{
+                console.error("Error attempting to enter fullscreen mode:", err);
+            }});
+          }}
+       }}
+   }});
 
     // Send the updated pipe data to the backend
     sendPipeDataToBackend();
