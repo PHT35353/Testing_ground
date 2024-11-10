@@ -244,7 +244,7 @@ mapbox_map_html = f"""
    function loadMap() {{
     const user_id = "user1";  // Replace with dynamic user ID if needed
 
-    fetch(`https://fastapi-test-production-1ba4.up.railway.app/load-map/${user_id}`)
+    fetch(`https://fastapi-test-production-1ba4.up.railway.app/load-map/${{user_id}}`)
     .then(response => response.json())
     .then(data => {{
         if (data.status === "success") {{
@@ -265,7 +265,7 @@ mapbox_map_html = f"""
                     featureNames[feature.id] = feature.properties.name;
                 }}
                 if (feature.geometry.type === 'LineString') {{
-                    const length = turf.length(feature, {{ units: 'meters' });
+                    const length = turf.length(feature, {{ units: 'meters' }});
                     pipeData[feature.id] = {{
                         name: featureNames[feature.id],
                         distance: length
@@ -330,13 +330,22 @@ let mapSaved = true;
 let pipeData = {{}};  // Global object to store pipe data, including names and distances
 
 // Attach the updateMeasurements function to Mapbox draw events
+let unnamedPipeCount = 1; // Global counter for unnamed pipes
+
 map.on('draw.create', (e) => {{
     const feature = e.features[0];
 
     if (feature.geometry.type === 'LineString') {{
-        // Prompt for the name and save it to feature properties and pipeData
+        // Prompt for the name
         const name = prompt("Enter a name for this line:");
-        featureNames[feature.id] = name || `Line ${{feature.id}}`;
+
+        // Assign default name if none is provided
+        if (!name || name.trim() === "") {{
+            featureNames[feature.id] = `Unnamed Pipe ${{unnamedPipeCount}}`;
+            unnamedPipeCount++; // Increment unnamed pipe count
+        }} else {{
+            featureNames[feature.id] = name;
+        }}
         feature.properties.name = featureNames[feature.id];
 
         // Calculate distance and save it to pipeData
@@ -359,7 +368,11 @@ map.on('draw.update', (e) => {{
         if (feature.geometry.type === 'LineString') {{
             // Update name if it exists
             if (!feature.properties.name) {{
-                feature.properties.name = featureNames[feature.id] || `Line ${{feature.id}}`;
+                if (!featureNames[feature.id]) {{
+                    featureNames[feature.id] = `Unnamed Pipe ${{unnamedPipeCount}}`;
+                    unnamedPipeCount++;
+                }}
+                feature.properties.name = featureNames[feature.id];
             }}
 
             // Calculate updated distance and update pipeData
@@ -377,6 +390,7 @@ map.on('draw.update', (e) => {{
     updateSidebarMeasurements(e);
     mapSaved = false;
 }});
+
 
 map.on('draw.delete', (e) => {{
    deleteFeature(e);
