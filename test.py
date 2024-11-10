@@ -201,16 +201,6 @@ mapbox_map_html = f"""
 
     map.addControl(Draw);
 
-    function centerMap(lat, lng) {{
-        map.flyTo({{
-            center: [lng, lat],
-            zoom: 15,  // Adjust the zoom level as needed
-            essential: true // This ensures the transition is smooth
-        }});
-    }}
-    
-   
-    
      // Function to save the map data to the backend
     function saveMap() {{
         const mapData = Draw.getAll();  // Get all drawn features from Mapbox
