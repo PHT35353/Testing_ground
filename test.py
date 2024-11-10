@@ -349,7 +349,7 @@ map.on('draw.create', (e) => {{
         feature.properties.name = featureNames[feature.id];
 
         // Calculate distance and save it to pipeData
-        const length = turf.length(feature, {{ units: 'meters' });
+        const length = turf.length(feature, {{ units: 'meters' }});
         pipeData[feature.id] = {{
             name: featureNames[feature.id],
             distance: length
