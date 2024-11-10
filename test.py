@@ -191,13 +191,13 @@ mapbox_map_html = f"""
 
     let isFullscreen = false;
 
-fullscreenControl.on('enter', () => {{
-    isFullscreen = true;
-}});
+    fullscreenControl.on('enter', () => {{
+        isFullscreen = true;
+    }});
 
-fullscreenControl.on('exit', () => {{
+    fullscreenControl.on('exit', () => {{
     isFullscreen = false;
-}});
+    }});
 
 
     // Enable rotation and pitch adjustments using right-click
@@ -372,8 +372,7 @@ map.on('draw.create', (e) => {{
 
     updateSidebarMeasurements(e);
     mapSaved = false;
-
-    // Prevent exiting fullscreen automatically
+    
     if (isFullscreen) {{
         const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
         if (!fullscreenElement) {{
@@ -383,6 +382,7 @@ map.on('draw.create', (e) => {{
         }}
     }}
 }});
+    
 
 
 map.on('draw.update', (e) => {{
@@ -412,7 +412,6 @@ map.on('draw.update', (e) => {{
     updateSidebarMeasurements(e);
     mapSaved = false;
 
-    // Prevent exiting fullscreen automatically
     if (isFullscreen) {{
         const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
         if (!fullscreenElement) {{
@@ -422,6 +421,7 @@ map.on('draw.update', (e) => {{
         }}
     }}
 }});
+
 
 
 map.on('draw.delete', (e) => {{
