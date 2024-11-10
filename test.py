@@ -366,17 +366,10 @@ map.on('draw.update', (e) => {{
 }});
 
 map.on('draw.delete', (e) => {{
-    e.features.forEach(feature => {{
-        const featureId = feature.id;
-        // Remove data related to the deleted feature
-        delete pipeData[featureId];
-        delete featureColors[featureId];
-        delete featureNames[featureId];
-    }});
-
-    updateSidebarMeasurements(e);
-    mapSaved = false;
+   deleteFeature(e);
+   mapSaved = false
 }});
+
 
 function getSelectedDistances() {{
     let selectedPipes = [];
