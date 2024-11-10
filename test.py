@@ -318,7 +318,7 @@ mapbox_map_html = f"""
     document.querySelectorAll('input[type=checkbox]:checked').forEach(checkbox => {{
         const pipeId = checkbox.id;
         const pipeDistance = parseFloat(checkbox.value);
-        const pipeName = featureNames[pipeId] || "Unnamed Pipe"; // Use the actual name if available
+        const pipeName = featureNames[pipeId] || `Unnamed Pipe`; // Use the actual name if available
         selectedPipes.push({{ name: pipeName, distance: pipeDistance }});
     }});
 
@@ -328,8 +328,8 @@ mapbox_map_html = f"""
             method: "POST",
             headers: {{
                 "Content-Type": "application/json",
-            }},
-            body: JSON.stringify({{ pipes: selectedPipes }})  // Sending the pipes as a JSON body
+            },
+            body: JSON.stringify({{ pipes: selectedPipes }})  // Sending the pipes with names and distances as a JSON body
         }})
         .then(response => response.json())
         .then(data => {{
@@ -346,7 +346,6 @@ mapbox_map_html = f"""
         console.log("No pipes selected.");
     }}
 }}
-
 
 let mapSaved = true;
 
@@ -981,6 +980,7 @@ def get_distance_values():
     except Exception as e:
         st.error(f"Error fetching pipes data from backend: {e}")
         return None, None
+
 
 def pipe_main():
     st.title("Pipe Selection Tool")
