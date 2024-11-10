@@ -312,14 +312,77 @@ mapbox_map_html = f"""
     let featureColors = {{}};
     let featureNames = {{}};
 
-   function getSelectedDistances() {{
+let mapSaved = true;
+
+let pipeData = {{}};  // Global object to store pipe data, including names and distances
+
+// Attach the updateMeasurements function to Mapbox draw events
+map.on('draw.create', (e) => {{
+    const feature = e.features[0];
+
+    if (feature.geometry.type === 'LineString') {{
+        // Prompt for the name and save it to feature properties and pipeData
+        const name = prompt("Enter a name for this line:");
+        featureNames[feature.id] = name || `Line ${{feature.id}}`;
+        feature.properties.name = featureNames[feature.id];
+
+        // Calculate distance and save it to pipeData
+        const length = turf.length(feature, {{ units: 'meters' }});
+        pipeData[feature.id] = {{
+            name: featureNames[feature.id],
+            distance: length
+        }};
+    }}
+
+    updateSidebarMeasurements(e);
+    getSelectedDistances();  // Make sure to call this function after a line is drawn
+    mapSaved = false;
+}});
+
+map.on('draw.update', (e) => {{
+    e.features.forEach(feature => {{
+        if (feature.geometry.type === 'LineString') {{
+            // Update name if it exists
+            if (!feature.properties.name) {{
+                feature.properties.name = featureNames[feature.id] || `Line ${{feature.id}}`;
+            }}
+
+            // Calculate updated distance and update pipeData
+            const length = turf.length(feature, {{ units: 'meters' }});
+            pipeData[feature.id] = {{
+                name: featureNames[feature.id],
+                distance: length
+            }};
+        }}
+    }});
+
+    updateSidebarMeasurements(e);
+    getSelectedDistances();  // Also send new distances after updating lines
+    mapSaved = false;
+}});
+
+map.on('draw.delete', (e) => {{
+    e.features.forEach(feature => {{
+        const featureId = feature.id;
+        // Remove data related to the deleted feature
+        delete pipeData[featureId];
+        delete featureColors[featureId];
+        delete featureNames[featureId];
+    }});
+
+    updateSidebarMeasurements(e);
+    mapSaved = false;
+}});
+
+function getSelectedDistances() {{
     let selectedPipes = [];
 
     document.querySelectorAll('input[type=checkbox]:checked').forEach(checkbox => {{
         const pipeId = checkbox.id;
-        const pipeDistance = parseFloat(checkbox.value);
-        const pipeName = featureNames[pipeId] || `Unnamed Pipe`; // Use the actual name if available
-        selectedPipes.push({{ name: pipeName, distance: pipeDistance }});
+        if (pipeData[pipeId]) {{
+            const {{ name, distance }} = pipeData[pipeId];
+            selectedPipes.push({{ name: name || 'Unnamed Pipe', distance: distance }});
+        }}
     }});
 
     if (selectedPipes.length > 0) {{
@@ -347,43 +410,6 @@ mapbox_map_html = f"""
     }}
 }}
 
-let mapSaved = true;
-
-// Attach the updateMeasurements function to Mapbox draw events
-map.on('draw.create', (e) => {{
-    const feature = e.features[0];
-
-    if (feature.geometry.type === 'LineString') {{
-        // Prompt for the name and save it to feature properties
-        const name = prompt("Enter a name for this line:");
-        featureNames[feature.id] = name || `Line ${{feature.id}}`;
-        feature.properties.name = featureNames[feature.id];
-    }}
-
-    updateSidebarMeasurements(e);
-    getSelectedDistances();  // Make sure to call this function after a line is drawn
-    mapSaved = false;
-}});
-
-
-map.on('draw.update', (e) => {{
-    e.features.forEach(feature => {{
-        if (feature.geometry.type === 'LineString' && !feature.properties.name) {{
-            // If the feature is a line and doesn't have a name, assign the saved name
-            feature.properties.name = featureNames[feature.id] || `Line ${{feature.id}}`;
-        }}
-    }});
-
-    updateSidebarMeasurements(e);
-    getSelectedDistances();  // Also send new distances after updating lines
-    mapSaved = false;
-}});
-
-
-map.on('draw.delete', (e) => {{
-   deleteFeature(e);
-   mapSaved = false
-}});
 
 
  function updateSidebarMeasurements(e) {{
