@@ -189,7 +189,6 @@ mapbox_map_html = f"""
     map.addControl(new mapboxgl.NavigationControl());
     map.addControl(new mapboxgl.FullscreenControl());
 
-
     // Enable rotation and pitch adjustments using right-click
     map.dragRotate.enable();
     map.touchZoomRotate.enableRotation();
@@ -333,16 +332,6 @@ let pipeData = {{}};  // Global object to store pipe data, including names and d
 // Attach the updateMeasurements function to Mapbox draw events
 let unnamedPipeCount = 1; // Global counter for unnamed pipes
 
-let isFullscreen = false;
-
-    fullscreenControl.on('enter', () => {{
-        isFullscreen = true;
-    }});
-
-    fullscreenControl.on('exit', () => {{
-    isFullscreen = false;
-    }});
-
 map.on('draw.create', (e) => {{
     const feature = e.features[0];
 
@@ -372,18 +361,7 @@ map.on('draw.create', (e) => {{
 
     updateSidebarMeasurements(e);
     mapSaved = false;
-    
-    if (isFullscreen) {{
-        const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
-        if (!fullscreenElement) {{
-            map.getContainer().requestFullscreen().catch((err) => {{
-                console.error("Error attempting to enter fullscreen mode:", err);
-            }});
-        }}
-    }}
 }});
-    
-
 
 map.on('draw.update', (e) => {{
     e.features.forEach(feature => {{
@@ -411,17 +389,7 @@ map.on('draw.update', (e) => {{
 
     updateSidebarMeasurements(e);
     mapSaved = false;
-
-    if (isFullscreen) {{
-        const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
-        if (!fullscreenElement) {{
-            map.getContainer().requestFullscreen().catch((err) => {{
-                console.error("Error attempting to enter fullscreen mode:", err);
-            }});
-        }}
-    }}
 }});
-
 
 
 map.on('draw.delete', (e) => {{
