@@ -241,40 +241,54 @@ mapbox_map_html = f"""
     }}
 
     // Function to load the saved map data from the backend
-    function loadMap() {{
-        const user_id = "user1";  // Replace with dynamic user ID if needed
+   function loadMap() {{
+    const user_id = "user1";  // Replace with dynamic user ID if needed
 
-        fetch(`https://fastapi-test-production-1ba4.up.railway.app/load-map/${{user_id}}`)
-        .then(response => response.json())
-        .then(data => {{
-            if (data.status === "success") {{
-                const savedMapData = data.map_data;
+    fetch(`https://fastapi-test-production-1ba4.up.railway.app/load-map/${user_id}`)
+    .then(response => response.json())
+    .then(data => {{
+        if (data.status === "success") {{
+            const savedMapData = data.map_data;
 
-                // Clear existing drawings before loading new data
-                Draw.deleteAll();
-                
-                // Add the saved features back to the map
-                Draw.add(savedMapData);
+            // Clear existing drawings before loading new data
+            Draw.deleteAll();
+            
+            // Add the saved features back to the map
+            Draw.add(savedMapData);
 
-                // Restore feature colors and names
-                savedMapData.features.forEach((feature) => {{
-                    if (feature.properties.color) {{
-                        featureColors[feature.id] = feature.properties.color;
-                    }}
-                    if (feature.properties.name) {{
-                        featureNames[feature.id] = feature.properties.name;
-                    }}
-                }});
-                
-                alert("Map data loaded successfully!");
-            }} else {{
-                alert("No saved map data found.");
-            }}
-        }})
-        .catch(error => {{
-            console.error("Error loading map data:", error);
-        }});
-    }}
+            // Restore feature colors, names, and update pipeData for distances
+            savedMapData.features.forEach((feature) => {{
+                if (feature.properties.color) {{
+                    featureColors[feature.id] = feature.properties.color;
+                }}
+                if (feature.properties.name) {{
+                    featureNames[feature.id] = feature.properties.name;
+                }}
+                if (feature.geometry.type === 'LineString') {{
+                    const length = turf.length(feature, {{ units: 'meters' });
+                    pipeData[feature.id] = {{
+                        name: featureNames[feature.id],
+                        distance: length
+                    }};
+                }}
+            }});
+
+            // Send the updated pipe data to the backend
+            sendPipeDataToBackend();
+
+            // Update the sidebar measurements with the loaded features
+            updateSidebarMeasurements({{ features: savedMapData.features }});
+
+            alert("Map data loaded successfully!");
+        }} else {{
+            alert("No saved map data found.");
+        }}
+    }})
+    .catch(error => {{
+        console.error("Error loading map data:", error);
+    }});
+}}
+
 
     window.onbeforeunload = function () {{
         if (!mapSaved) {{
@@ -315,7 +329,6 @@ let mapSaved = true;
 
 let pipeData = {{}};  // Global object to store pipe data, including names and distances
 
-// Attach the updateMeasurements function to Mapbox draw events
 // Attach the updateMeasurements function to Mapbox draw events
 map.on('draw.create', (e) => {{
     const feature = e.features[0];
