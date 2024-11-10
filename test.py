@@ -352,16 +352,34 @@ let mapSaved = true;
 
 // Attach the updateMeasurements function to Mapbox draw events
 map.on('draw.create', (e) => {{
+    const feature = e.features[0];
+
+    if (feature.geometry.type === 'LineString') {{
+        // Prompt for the name and save it to feature properties
+        const name = prompt("Enter a name for this line:");
+        featureNames[feature.id] = name || `Line ${{feature.id}}`;
+        feature.properties.name = featureNames[feature.id];
+    }}
+
     updateSidebarMeasurements(e);
     getSelectedDistances();  // Make sure to call this function after a line is drawn
-    mapSaved = false
+    mapSaved = false;
 }});
 
+
 map.on('draw.update', (e) => {{
+    e.features.forEach(feature => {{
+        if (feature.geometry.type === 'LineString' && !feature.properties.name) {{
+            // If the feature is a line and doesn't have a name, assign the saved name
+            feature.properties.name = featureNames[feature.id] || `Line ${{feature.id}}`;
+        }}
+    }});
+
     updateSidebarMeasurements(e);
     getSelectedDistances();  // Also send new distances after updating lines
-    mapSaved = false
+    mapSaved = false;
 }});
+
 
 map.on('draw.delete', (e) => {{
    deleteFeature(e);
