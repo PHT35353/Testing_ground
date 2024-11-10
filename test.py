@@ -370,19 +370,20 @@ map.on('draw.create', (e) => {{
         sendPipeDataToBackend();
     }}
 
+    updateSidebarMeasurements(e);
+    mapSaved = false;
+
+    // Prevent exiting fullscreen automatically
     if (isFullscreen) {{
         const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
         if (!fullscreenElement) {{
             map.getContainer().requestFullscreen().catch((err) => {{
                 console.error("Error attempting to enter fullscreen mode:", err);
             }});
-          }}
-       }}
-   }});
-
-    updateSidebarMeasurements(e);
-    mapSaved = false;
+        }}
+    }}
 }});
+
 
 map.on('draw.update', (e) => {{
     e.features.forEach(feature => {{
@@ -405,21 +406,21 @@ map.on('draw.update', (e) => {{
         }}
     }});
 
+    // Send the updated pipe data to the backend
+    sendPipeDataToBackend();
+
+    updateSidebarMeasurements(e);
+    mapSaved = false;
+
+    // Prevent exiting fullscreen automatically
     if (isFullscreen) {{
         const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
         if (!fullscreenElement) {{
             map.getContainer().requestFullscreen().catch((err) => {{
                 console.error("Error attempting to enter fullscreen mode:", err);
             }});
-          }}
-       }}
-   }});
-
-    // Send the updated pipe data to the backend
-    sendPipeDataToBackend();
-
-    updateSidebarMeasurements(e);
-    mapSaved = false;
+        }}
+    }}
 }});
 
 
