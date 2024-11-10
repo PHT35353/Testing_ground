@@ -189,16 +189,6 @@ mapbox_map_html = f"""
     map.addControl(new mapboxgl.NavigationControl());
     map.addControl(new mapboxgl.FullscreenControl());
 
-    let isFullscreen = false;
-
-    fullscreenControl.on('enter', () => {{
-        isFullscreen = true;
-    }});
-
-    fullscreenControl.on('exit', () => {{
-    isFullscreen = false;
-    }});
-
 
     // Enable rotation and pitch adjustments using right-click
     map.dragRotate.enable();
@@ -342,6 +332,16 @@ let pipeData = {{}};  // Global object to store pipe data, including names and d
 
 // Attach the updateMeasurements function to Mapbox draw events
 let unnamedPipeCount = 1; // Global counter for unnamed pipes
+
+let isFullscreen = false;
+
+    fullscreenControl.on('enter', () => {{
+        isFullscreen = true;
+    }});
+
+    fullscreenControl.on('exit', () => {{
+    isFullscreen = false;
+    }});
 
 map.on('draw.create', (e) => {{
     const feature = e.features[0];
