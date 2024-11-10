@@ -265,7 +265,7 @@ mapbox_map_html = f"""
                     featureNames[feature.id] = feature.properties.name;
                 }}
                 if (feature.geometry.type === 'LineString') {{
-                    const length = turf.length(feature, {{ units: 'meters' });
+                    const length = turf.length(feature, {{ units: 'meters' }});
                     pipeData[feature.id] = {{
                         name: featureNames[feature.id],
                         distance: length
