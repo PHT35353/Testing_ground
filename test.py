@@ -68,21 +68,6 @@ def search_address_and_fill_coordinates():
                     # Notify user and auto-fill the coordinates in the Streamlit sidebar
                     st.sidebar.success(f"Address found: {place_name}")
                     st.sidebar.write(f"Coordinates: Latitude {latitude}, Longitude {longitude}")
-
-                    save_script = f"""
-                    <script>
-                        saveDrawingsBeforeLocationChange(); // Save current drawings
-                        setTimeout(function() {{
-                            map.setCenter([{longitude}, {latitude}]); // Set new map center
-                            setTimeout(function() {{
-                                restoreDrawingsAfterLocationChange(); // Restore previous drawings after centering
-                            }}, 1000);
-                        }}, 500);
-                    </script>
-                    """
-                    st.components.v1.html(save_script)
-
-                    
                     return latitude, longitude  # Return the found coordinates
                 else:
                     st.sidebar.error("Address not found.")
@@ -220,23 +205,6 @@ mapbox_map_html = f"""
     }});
 
     map.addControl(Draw);
-
-    let saved_map_features = []; // Global variable to store features before searching
-
-    function saveDrawingsBeforeLocationChange() {{
-    const mapData = Draw.getAll();
-    if (mapData.features.length > 0) {{
-        saved_map_features = mapData.features; // Store the features globally
-    }}
- }}
-
-
-   function restoreDrawingsAfterLocationChange() {{
-    if (saved_map_features.length > 0) {{
-        Draw.add({{ "type": "FeatureCollection", "features": saved_map_features }});
-    }}
-}}
-
 
      // Function to save the map data to the backend
     function saveMap() {{
