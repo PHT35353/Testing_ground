@@ -241,40 +241,48 @@ mapbox_map_html = f"""
     }}
 
     // Function to load the saved map data from the backend
-    function loadMap() {{
-        const user_id = "user1";  // Replace with dynamic user ID if needed
+function loadMap() {{
+    const user_id = "user1";  // Replace with dynamic user ID if needed
 
-        fetch(`https://fastapi-test-production-1ba4.up.railway.app/load-map/${{user_id}}`)
-        .then(response => response.json())
-        .then(data => {{
-            if (data.status === "success") {{
-                const savedMapData = data.map_data;
+    fetch(`https://fastapi-test-production-1ba4.up.railway.app/load-map/${{user_id}}`)
+    .then(response => response.json())
+    .then(data => {{
+        if (data.status === "success") {{
+            const savedMapData = data.map_data;
 
-                // Clear existing drawings before loading new data
-                Draw.deleteAll();
-                
-                // Add the saved features back to the map
-                Draw.add(savedMapData);
+            // Clear existing drawings before loading new data
+            Draw.deleteAll();
 
-                // Restore feature colors and names
-                savedMapData.features.forEach((feature) => {{
-                    if (feature.properties.color) {{
-                        featureColors[feature.id] = feature.properties.color;
-                    }}
-                    if (feature.properties.name) {{
-                        featureNames[feature.id] = feature.properties.name;
-                    }}
-                }});
-                
-                alert("Map data loaded successfully!");
-            }} else {{
-                alert("No saved map data found.");
-            }}
-        }})
-        .catch(error => {{
-            console.error("Error loading map data:", error);
-        }});
-    }}
+            // Add the saved features back to the map
+            Draw.add(savedMapData);
+
+            // Restore feature colors, names, and add to pipeData
+            savedMapData.features.forEach((feature) => {{
+                if (feature.properties.color) {{
+                    featureColors[feature.id] = feature.properties.color;
+                }}
+                if (feature.properties.name) {{
+                    featureNames[feature.id] = feature.properties.name;
+                }}
+                if (feature.geometry.type === 'LineString') {{
+                    const length = turf.length(feature, {{ units: 'meters' }});
+                    pipeData[feature.id] = {{
+                        name: featureNames[feature.id] || 'Unnamed Pipe',
+                        distance: length
+                    }};
+                }}
+            }});
+
+            alert("Map data loaded successfully!");
+        }} else {{
+            alert("No saved map data found.");
+        }}
+    }})
+    .catch(error => {{
+        console.error("Error loading map data:", error);
+    }});
+}}
+
 
     window.onbeforeunload = function () {{
         if (!mapSaved) {{
@@ -316,17 +324,14 @@ let mapSaved = true;
 let pipeData = {{}};  // Global object to store pipe data, including names and distances
 
 // Attach the updateMeasurements function to Mapbox draw events
-// Attach the updateMeasurements function to Mapbox draw events
-map.on('draw.create', (e) => {{
+ap.on('draw.create', (e) => {{
     const feature = e.features[0];
 
     if (feature.geometry.type === 'LineString') {{
-        // Prompt for the name and save it to feature properties and pipeData
         const name = prompt("Enter a name for this line:");
-        featureNames[feature.id] = name || `Line ${{feature.id}}`;
+        featureNames[feature.id] = name || 'Unnamed Pipe';
         feature.properties.name = featureNames[feature.id];
 
-        // Calculate distance and save it to pipeData
         const length = turf.length(feature, {{ units: 'meters' }});
         pipeData[feature.id] = {{
             name: featureNames[feature.id],
@@ -344,17 +349,42 @@ map.on('draw.create', (e) => {{
 map.on('draw.update', (e) => {{
     e.features.forEach(feature => {{
         if (feature.geometry.type === 'LineString') {{
-            // Update name if it exists
+            // Ensure feature has a name, or keep it as 'Unnamed Pipe'
             if (!feature.properties.name) {{
-                feature.properties.name = featureNames[feature.id] || `Line ${{feature.id}}`;
+                feature.properties.name = featureNames[feature.id] || 'Unnamed Pipe';
+                featureNames[feature.id] = feature.properties.name;
             }}
 
             // Calculate updated distance and update pipeData
             const length = turf.length(feature, {{ units: 'meters' }});
             pipeData[feature.id] = {{
-                name: featureNames[feature.id],
+                name: feature.properties.name,
                 distance: length
             }};
+        }}
+
+        // Ensure color stays updated with the feature
+        if (feature.geometry.type === 'LineString' || feature.geometry.type === 'Polygon') {{
+            if (featureColors[feature.id]) {{
+                map.getSource('line-' + feature.id)?.setData(feature);
+                map.addLayer({{
+                    id: 'line-' + feature.id,
+                    type: feature.geometry.type === 'LineString' ? 'line' : 'fill',
+                    source: {{
+                        type: 'geojson',
+                        data: feature
+                    }},
+                    paint: feature.geometry.type === 'LineString'
+                        ? {{
+                            'line-color': featureColors[feature.id],
+                            'line-width': 4
+                        }}
+                        : {{
+                            'fill-color': featureColors[feature.id],
+                            'fill-opacity': 0.6
+                        }}
+                }});
+            }}
         }}
     }});
 
@@ -407,6 +437,7 @@ function getSelectedDistances() {{
     }}
 }}
 
+
 // Function to send the pipe data (names and distances) to the FastAPI backend
 function sendPipeDataToBackend() {{
     const pipeList = Object.keys(pipeData).map(pipeId => ({{
@@ -435,6 +466,78 @@ function sendPipeDataToBackend() {{
     }});
 }}
 
+// Function to search an address, get its coordinates, and add it as a landmark on the map
+function searchAddressAndFillCoordinates(address) {{
+    const apiKey = '{mapbox_access_token}';  
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${{encodeURIComponent(address)}}.json?access_token=${{apiKey}}`;
+
+    // Fetch coordinates for the given address
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {{
+            if (data.features && data.features.length > 0) {{
+                const coordinates = data.features[0].geometry.coordinates;
+                const placeName = data.features[0].place_name;
+
+                // Define a unique ID for the new feature
+                const featureId = `landmark-${{Date.now()}}`;
+
+                // Create a feature for the landmark
+                const landmarkFeature = {{
+                    type: 'Feature',
+                    geometry: {{
+                        type: 'Point',
+                        coordinates: coordinates
+                    }},
+                    properties: {{
+                        id: featureId,
+                        name: placeName || 'Unnamed Landmark',
+                        color: '#FF6347'  // Default color for landmarks
+                    }}
+                }};
+
+                // Save the landmark's name and color to featureNames and featureColors
+                featureNames[featureId] = landmarkFeature.properties.name;
+                featureColors[featureId] = landmarkFeature.properties.color;
+
+                // Add the landmark to the map as a point layer
+                map.addSource(featureId, {{
+                    type: 'geojson',
+                    data: landmarkFeature
+                }});
+                map.addLayer({{
+                    id: featureId,
+                    type: 'circle',
+                    source: featureId,
+                    paint: {{
+                        'circle-radius': 8,
+                        'circle-color': landmarkFeature.properties.color,
+                        'circle-stroke-width': 2,
+                        'circle-stroke-color': '#ffffff'
+                    }}
+                }});
+
+                // Update landmarkData to keep track of landmarks for backend
+                landmarkData[featureId] = {{
+                    name: landmarkFeature.properties.name,
+                    coordinates: coordinates
+                }};
+
+                // Center the map on the searched address
+                map.flyTo({{ center: coordinates, zoom: 15 }});
+
+                // Optionally update the sidebar or frontend with the new landmark info
+                updateSidebarWithLandmark(landmarkFeature);
+            }} else {{
+                console.error('Address not found');
+                alert('Address not found');
+            }}
+        }})
+        .catch(error => {{
+            console.error('Error fetching address:', error);
+            alert('Error fetching address');
+        }});
+}}
 
  function updateSidebarMeasurements(e) {{
         const data = Draw.getAll();
@@ -840,6 +943,8 @@ def B1001_filter(P, distanceValue):
     for i in range(len(B1001_data_dict['Pressure (bar)'])):
         if B1001_data_dict['Pressure (bar)'][i] >= P:
             available_pipes.append({
+                'Pipe Name': pipe_name,
+                'Distance (m)': distanceValue,
                 'External diameter (mm)': B1001_data_dict['External diameter (mm)'][i],
                 'Wall thickness (mm)': B1001_data_dict['Wall thickness (mm)'][i],
                 'Cost per m (Euro)': B1001_data_dict['Cost per m (Euro)'][i],
@@ -870,6 +975,8 @@ def B1003_filter(P, distanceValue):
     for i in range(len(B1003_data_dict['Pressure (bar)'])):
         if B1003_data_dict['Pressure (bar)'][i] >= P:
             available_pipes.append({
+                'Pipe Name': pipe_name,
+                'Distance (m)': distanceValue,
                 'External diameter (mm)': B1003_data_dict['External diameter (mm)'][i],
                 'Wall thickness (mm)': B1003_data_dict['Wall thickness (mm)'][i],
                 'Cost per m (Euro)': B1003_data_dict['Cost per m (Euro)'][i],
@@ -897,6 +1004,8 @@ def B1005_filter(P, distanceValue):
     for i in range(len(B1005_data_dict['Pressure (bar)'])):
         if B1005_data_dict['Pressure (bar)'][i] >= P:
             available_pipes.append({
+                'Pipe Name': pipe_name,
+                'Distance (m)': distanceValue,
                 'External diameter (mm)': B1005_data_dict['External diameter (mm)'][i],
                 'Wall thickness (mm)': B1005_data_dict['Wall thickness (mm)'][i],
                 'Cost per m (Euro)': B1005_data_dict['Cost per m (Euro)'][i],
@@ -924,6 +1033,8 @@ def B10051_filter(P, distanceValue):
     for i in range(len(B10051_data_dict['Pressure (bar)'])):
         if B10051_data_dict['Pressure (bar)'][i] >= P:
             available_pipes.append({
+                'Pipe Name': pipe_name,
+                'Distance (m)': distanceValue,
                 'External diameter (mm)': B10051_data_dict['External diameter (mm)'][i],
                 'Wall thickness (mm)': B10051_data_dict['Wall thickness (mm)'][i],
                 'Cost per m (Euro)': B10051_data_dict['Cost per m (Euro)'][i],
@@ -952,6 +1063,8 @@ def B1008_filter(P, distanceValue):
     for i in range(len(B1008_data_dict['Pressure (bar)'])):
         if B1008_data_dict['Pressure (bar)'][i] >= P:
             available_pipes.append({
+                'Pipe Name': pipe_name,
+                'Distance (m)': distanceValue,
                 'External diameter (mm)': B1008_data_dict['External diameter (mm)'][i],
                 'Wall thickness (mm)': B1008_data_dict['Wall thickness (mm)'][i],
                 'Cost per m (Euro)': B1008_data_dict['Cost per m (Euro)'][i],
