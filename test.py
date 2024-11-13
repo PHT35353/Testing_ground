@@ -434,13 +434,17 @@ function getSelectedDistances() {{
     }}
 }}
 
-// Function to send the pipe data (names and distances) to the FastAPI backend
+// Function to send the pipe data (names, distances, and coordinates) to the FastAPI backend
 function sendPipeDataToBackend() {{
-    const pipeList = Object.keys(pipeData).map(pipeId => ({{
-        name: pipeData[pipeId].name,
-        distance: pipeData[pipeId].distance
-        coordinates: feature.geometry.coordinates
-    }}));
+    const pipeList = Object.keys(pipeData).map(pipeId => {{
+        const feature = Draw.get(pipeId);
+        
+        return {{
+            name: pipeData[pipeId].name,
+            distance: pipeData[pipeId].distance,
+            coordinates: feature ? feature.geometry.coordinates : []
+        }};
+    }});
 
     // Send the pipe list to the backend
     fetch("https://fastapi-test-production-1ba4.up.railway.app/send-pipes/", {{
@@ -462,6 +466,7 @@ function sendPipeDataToBackend() {{
         console.error("Error sending pipes:", error);
     }});
 }}
+
 
 
  function updateSidebarMeasurements(e) {{
@@ -1084,7 +1089,8 @@ def pipe_main():
                 with col2:
                     st.markdown(f"**Distance:** {pipe['distance']} meters")
 
-                st.markdown(f"**Coordinates:** {pipe['coordinates']}")
+                # Display the coordinates of the drawn lines
+                st.markdown(f"**Coordinates:** {pipe['coordinates']}")  # Display the coordinates
 
                 # Choose the pipe material based on inputs
                 pipe_material = choose_pipe_material(pressure, temperature, medium)
@@ -1112,7 +1118,6 @@ def pipe_main():
             stress_calculator(pipe_material, temperature)
             st.markdown("#### Total Pipe Summary:")
             Pipe_finder(pipe_material, pressure, total_selected_distance)
-
 
 # Run the main function
 pipe_main()
