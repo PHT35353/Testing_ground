@@ -439,6 +439,7 @@ function sendPipeDataToBackend() {{
     const pipeList = Object.keys(pipeData).map(pipeId => ({{
         name: pipeData[pipeId].name,
         distance: pipeData[pipeId].distance
+        coordinates: feature.geometry.coordinates
     }}));
 
     // Send the pipe list to the backend
@@ -1044,7 +1045,7 @@ def get_distance_values():
         response = requests.get("https://fastapi-test-production-1ba4.up.railway.app/get-distances/")
         if response.status_code == 200:
             data = response.json()
-            individual_pipes = [{"name": pipe["name"], "distance": pipe["distance"]} for pipe in data.get("individual_pipes", [])]
+            individual_pipes = [{"name": pipe["name"], "distance": pipe["distance"], "coordinates": pipe["coordinates"]} for pipe in data.get("individual_pipes", [])]
             total_distance = data.get("total_distance", 0)
 
             if individual_pipes and total_distance > 0:
@@ -1057,7 +1058,6 @@ def get_distance_values():
     except Exception as e:
         st.error(f"Error fetching pipes data from backend: {e}")
         return None, None
-
 
 def pipe_main():
     st.title("Pipe Selection Tool")
@@ -1083,6 +1083,8 @@ def pipe_main():
                     st.markdown(f"**Pipe Name:** {pipe['name']}")
                 with col2:
                     st.markdown(f"**Distance:** {pipe['distance']} meters")
+
+                st.markdown(f"**Coordinates:** {pipe['coordinates']}")
 
                 # Choose the pipe material based on inputs
                 pipe_material = choose_pipe_material(pressure, temperature, medium)
@@ -1110,6 +1112,7 @@ def pipe_main():
             stress_calculator(pipe_material, temperature)
             st.markdown("#### Total Pipe Summary:")
             Pipe_finder(pipe_material, pressure, total_selected_distance)
+
 
 # Run the main function
 pipe_main()
