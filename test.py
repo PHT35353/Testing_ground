@@ -389,7 +389,7 @@ map.on('draw.create', (e) => {{
             }}
         }});
     }}
-    sendLandmarkDataToBackend(); 
+   
     updateSidebarMeasurements(e);
     mapSaved = false;
 }});
@@ -415,7 +415,7 @@ map.on('draw.update', (e) => {{
         }}
     }});
 
-          if (feature.geometry.type === 'Point') {{
+        if (feature.geometry.type === 'Point') {{
             // Update the landmark's name and color if they exist
             if (!feature.properties.name) {{
                 feature.properties.name = featureNames[feature.id] || `Landmark ${{landmarkCount}}`;
@@ -430,9 +430,9 @@ map.on('draw.update', (e) => {{
             map.getSource('marker-' + feature.id)?.setData(feature);
         }}
     }});
+    
     // Send the updated pipe data to the backend
     sendPipeDataToBackend();
-
     sendLandmarkDataToBackend();
     updateSidebarMeasurements(e);
     mapSaved = false;
