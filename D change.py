@@ -4,6 +4,8 @@ import pandas as pd
 import math
 import requests
 import json
+import io
+import os
 import streamlit.components.v1 as components
 from streamlit_javascript import st_javascript as stjs 
 import time
@@ -665,6 +667,7 @@ function deleteFeature(e) {{
 """
 components.html(mapbox_map_html, height=600)
 
+################################### Pipe calculation ##################################################
 #the pip price calculation par of the code:
 # Pipe data dictionaries
 B1001_data_dict = {
@@ -879,14 +882,14 @@ def B1001_filter(P, distanceValue):
                 'Total Cost (Euro)': B1001_data_dict['Total Cost (Euro)'][i] 
             })
 
+
+    # Display all available pipes or a message if none found
     if not available_pipes:
         st.write(f"No pipes found for the pressure of {P} bar.")
     else:
-        df = pd.DataFrame(available_pipes)
-        cheapest_pipe = df.loc[df['Total Cost (Euro)'].idxmin()]
-        
-        st.write(f"Cheapest available ASTM A106 grade B carbon steel pipe for {P} bar or higher pressure:")
-        st.dataframe(cheapest_pipe.to_frame().T) 
+        df = pd.DataFrame(available_pipes)  # Create a DataFrame with all available options
+        st.write(f"Available ASTM A106 grade B carbon steel pipes for {P} bar or higher pressure:")
+        st.dataframe(df)  # Display the DataFrame in Streamlit
 
 
 # Similar filters for B1003, B1005, and B1008 (will follow the same pattern)
@@ -909,13 +912,14 @@ def B1003_filter(P, distanceValue):
                 'Total Cost (Euro)': B1003_data_dict['Total Cost (Euro)'][i]
             })
 
+
+    # Display all available pipes or a message if none found
     if not available_pipes:
         st.write(f"No pipes found for the pressure of {P} bar.")
     else:
-         df = pd.DataFrame(available_pipes)
-         cheapest_pipe = df.loc[df['Total Cost (Euro)'].idxmin()]
-         st.write(f"Cheapest available ASTM A106 grade B extra strong carbon steel pipe for {P} bar or higher pressure:")
-         st.dataframe(cheapest_pipe.to_frame().T) 
+        df = pd.DataFrame(available_pipes)  # Create a DataFrame with all available options
+        st.write(f"Available ASTM A106 grade B eztra strong carbon steel pipes for {P} bar or higher pressure:")
+        st.dataframe(df)  # Display the DataFrame in Streamlit
 
 def B1005_filter(P, distanceValue):
     B1005_data_dict['External diameter (mm)'] = list(map(float, B1005_data_dict['External diameter (mm)']))
@@ -936,13 +940,14 @@ def B1005_filter(P, distanceValue):
                 'Total Cost (Euro)': B1005_data_dict['Total Cost (Euro)'][i]
             })
 
+
+    # Display all available pipes or a message if none found
     if not available_pipes:
         st.write(f"No pipes found for the pressure of {P} bar.")
     else:
-        df = pd.DataFrame(available_pipes)
-        cheapest_pipe = df.loc[df['Total Cost (Euro)'].idxmin()]
-        st.write(f"Cheapest available 304L stainless steel pipe for {P} bar or higher pressure:")
-        st.dataframe(cheapest_pipe.to_frame().T) 
+        df = pd.DataFrame(available_pipes)  # Create a DataFrame with all available options
+        st.write(f"Available 304L stainles steel pipes for {P} bar or higher pressure:")
+        st.dataframe(df)  # Display the DataFrame in Streamlit
 
 def B10051_filter(P, distanceValue):
     B10051_data_dict['External diameter (mm)'] = list(map(float, B10051_data_dict['External diameter (mm)']))
@@ -963,13 +968,13 @@ def B10051_filter(P, distanceValue):
                 'Total Cost (Euro)': B10051_data_dict['Total Cost (Euro)'][i]
             })
 
+    # Display all available pipes or a message if none found
     if not available_pipes:
         st.write(f"No pipes found for the pressure of {P} bar.")
     else:
-        df = pd.DataFrame(available_pipes)
-        cheapest_pipe = df.loc[df['Total Cost (Euro)'].idxmin()]
-        st.write(f"Cheapest available 316L stainless steel pipe for {P} bar or higher pressure:")
-        st.dataframe(cheapest_pipe.to_frame().T) 
+        df = pd.DataFrame(available_pipes)  # Create a DataFrame with all available options
+        st.write(f"Available 316L stainles steel pipes for {P} bar or higher pressure:")
+        st.dataframe(df)  # Display the DataFrame in Streamlit
 
 
 def B1008_filter(P, distanceValue):
@@ -991,13 +996,13 @@ def B1008_filter(P, distanceValue):
                 'Total Cost (Euro)': B1008_data_dict['Total Cost (Euro)'][i]
             })
 
+     # Display all available pipes or a message if none found
     if not available_pipes:
         st.write(f"No pipes found for the pressure of {P} bar.")
     else:
-        df = pd.DataFrame(available_pipes)
-        cheapest_pipe = df.loc[df['Total Cost (Euro)'].idxmin()]
-        st.write(f"Cheapest available PVC pipe for {P} bar or higher pressure:")
-        st.dataframe(cheapest_pipe.to_frame().T) 
+        df = pd.DataFrame(available_pipes)  # Create a DataFrame with all available options
+        st.write(f"Available PVC pipes for {P} bar or higher pressure:")
+        st.dataframe(df)  # Display the DataFrame in Streamlit
 
 # Function to choose pipe and filter based on material
 def Pipe_finder(material, P, distanceValue):
@@ -1030,7 +1035,7 @@ def get_user_inputs():
     medium = st.text_input("Enter the medium:")
 
     return pressure, temperature, medium
-
+################################## API Data's ##################################################
 # Function to check if FastAPI server is running
 def check_server_status():
     try:
@@ -1046,11 +1051,19 @@ def check_server_status():
 
 
 def get_distance_values():
+    """Fetch pipe data from the API."""
     try:
         response = requests.get("https://fastapi-test-production-1ba4.up.railway.app/get-distances/")
         if response.status_code == 200:
             data = response.json()
-            individual_pipes = [{"name": pipe["name"], "distance": pipe["distance"], "coordinates": pipe["coordinates"]} for pipe in data.get("individual_pipes", [])]
+            individual_pipes = [
+                {
+                    "name": pipe["name"],
+                    "distance": pipe["distance"],
+                    "coordinates": pipe["coordinates"]
+                }
+                for pipe in data.get("individual_pipes", [])
+            ]
             total_distance = data.get("total_distance", 0)
 
             if individual_pipes and total_distance > 0:
@@ -1064,6 +1077,121 @@ def get_distance_values():
         st.error(f"Error fetching pipes data from backend: {e}")
         return None, None
 
+
+################################## Storage ##################################################
+
+# File to store data persistently
+DATA_FILE = "pipe_data.json"
+
+def load_data():
+    """Load pipe data from the JSON file."""
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "r") as file:
+            return json.load(file)
+    return {}
+# Function to save data
+def save_data(data):
+    """Save pipe data to the JSON file."""
+    with open(DATA_FILE, "w") as file:
+        json.dump(data, file, indent=4)
+
+
+# Function to integrate API data into storage
+def integrate_api_data(pipe_data, api_pipes):
+    """Integrate API data into the storage system."""
+    for pipe in api_pipes:
+        pipe_name = pipe["name"]
+        if pipe_name not in pipe_data:  # Avoid duplicate entries
+            pipe_data[pipe_name] = {
+                "coordinates": pipe["coordinates"],
+                "length": pipe["distance"]
+            }
+    save_data(pipe_data)
+
+# Function to delete a specific pipe by name
+def delete_pipe(pipe_data, pipe_name):
+    """Delete a specific pipe by name from the storage."""
+    if pipe_name in pipe_data:
+        del pipe_data[pipe_name]
+        save_data(pipe_data)
+        return True
+    return False
+
+# Helper function to update the medium for a specific pipe
+def update_pipe_medium(pipe_data, pipe_name, medium):
+    """Update the medium for a specific pipe in storage."""
+    if pipe_name in pipe_data:
+        pipe_data[pipe_name]["medium"] = medium
+        save_data(pipe_data)
+        return True
+    return False
+
+# Function to display the storage system
+def main_storage():
+    """Main function to run the Pipe Storage System app."""
+    # Load existing data
+    pipe_data = load_data()
+
+    st.title("Pipe Storage System")
+    st.subheader("Store and View Pipe Details")
+
+    api_pipes, total_distance = get_distance_values()
+    if api_pipes:
+        integrate_api_data(pipe_data, api_pipes)
+        st.success("Fetched and integrated pipe data from API successfully!")
+        st.write(f"Total Distance from API: {total_distance} meters")
+
+    # Display stored pipes
+    st.header("Stored Pipes")
+    if pipe_data:
+        table_data = [
+            {
+                "Pipe Name": name,
+                "Coordinates": details["coordinates"],
+                "Length (meters)": details["length"],
+                "Medium": details.get("medium", "Not assigned")
+            }
+            for name, details in pipe_data.items()
+        ]
+        st.subheader("Pipe Data (Table View)")
+        st.table(table_data)  # Static table
+
+        # Download button for the table
+        df = pd.DataFrame(table_data)
+        csv_data = io.StringIO()
+        df.to_csv(csv_data, index=False)
+        st.download_button(
+            label="Download Table as CSV",
+            data=csv_data.getvalue(),
+            file_name="pipe_data.csv",
+            mime="text/csv"
+        )
+
+        # Delete Pipe Interface
+        st.header("Delete a Pipe")
+        with st.form("delete_pipe_form"):
+            pipe_name_to_delete = st.text_input("Pipe Name to Delete", placeholder="Enter pipe name")
+            delete_submitted = st.form_submit_button("Delete Pipe")
+
+            if delete_submitted:
+                if pipe_name_to_delete:
+                    if delete_pipe(pipe_data, pipe_name_to_delete):
+                        st.success(f"Pipe '{pipe_name_to_delete}' deleted successfully!")
+                    else:
+                        st.error(f"Pipe '{pipe_name_to_delete}' not found.")
+                else:
+                    st.error("Pipe name is required to delete.")
+    else:
+        st.info("No pipes stored yet. Add a new pipe to get started.")
+
+    # Clear all data
+    if st.button("Refresh data"):  # From clear all data to refresh data
+        pipe_data.clear()
+        save_data(pipe_data)
+        st.warning("All data is refreshed")
+
+
+# Function to assign mediums in pipe_main()
 def pipe_main():
     st.title("Pipe Selection Tool")
 
@@ -1079,6 +1207,9 @@ def pipe_main():
             st.warning("No pipe data available yet. Please draw lines on the map to proceed.")
         else:
             selected_pipes = individual_pipes  # Automatically select all individual pipes
+
+            # Load existing data
+            pipe_data = load_data()
 
             # Calculate and display individual pipe information
             st.markdown("### Selected Pipes Summary")
@@ -1096,6 +1227,9 @@ def pipe_main():
                 pipe_material = choose_pipe_material(pressure, temperature, medium)
                 st.markdown(f"**Selected Pipe Material:** {pipe_material}")
 
+                # Update the medium in storage
+                update_pipe_medium(pipe_data, pipe['name'], medium)
+
                 # Calculate the stress for the given material
                 stress_calculator(pipe_material, temperature)
 
@@ -1103,6 +1237,9 @@ def pipe_main():
                 st.markdown("#### Individual Pipe Summary:")
                 Pipe_finder(pipe_material, pressure, pipe['distance'])
                 st.markdown("---")
+
+            # Save updated pipe data
+            save_data(pipe_data)
 
             # Calculate and display total information for all selected pipes
             st.markdown("### Total Information for All Selected Pipes")
@@ -1121,3 +1258,4 @@ def pipe_main():
 
 # Run the main function
 pipe_main()
+main_storage()
