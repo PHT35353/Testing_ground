@@ -434,7 +434,6 @@ if (feature.geometry.type === 'Point') {{
     
     // Send the updated pipe data to the backend
     sendPipeDataToBackend();
-    sendLandmarkDataToBackend();
     updateSidebarMeasurements(e);
     mapSaved = false;
 }});
