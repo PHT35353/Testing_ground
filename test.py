@@ -362,33 +362,32 @@ map.on('draw.create', (e) => {{
     }}
 
     if (feature.geometry.type === 'Point') {{
-        // Prompt for the name
-        const name = prompt("Enter a name for this landmark:");
+    // Prompt for the name
+    const name = prompt("Enter a name for this landmark:");
+    feature.properties.name = name || `Landmark ${{landmarkCount + 1}}`;
+    featureNames[feature.id] = feature.properties.name;
+    landmarks.push(feature); // Add the landmark to the array
+    landmarkCount++;
 
-        // Assign default name if none is provided
-        feature.properties.name = name || `Landmark ${{landmarkCount}}`;
-        featureNames[feature.id] = feature.properties.name;
-        landmarks.push(feature); // Add to landmarks array
-        landmarkCount++;
+    // Prompt for the color
+    const color = prompt("Enter a color for this landmark (e.g., black, white):");
+    featureColors[feature.id] = color || 'black';
 
-        // Prompt for the color
-        const color = prompt("Enter a color for this landmark (e.g., black, white):");
-        featureColors[feature.id] = color || 'black';
+    // Add a circle layer for the landmark with the selected color
+    map.addLayer({{
+        id: 'marker-' + feature.id,
+        type: 'circle',
+        source: {{
+            type: 'geojson',
+            data: feature,
+        }},
+        paint: {{
+            'circle-radius': 8,
+            'circle-color': featureColors[feature.id],
+        }},
+    }});
+}}
 
-        // Add the landmark layer with the assigned color
-        map.addLayer({{
-            id: 'marker-' + feature.id,
-            type: 'circle',
-            source: {{
-                type: 'geojson',
-                data: feature
-            }},
-            paint: {{
-                'circle-radius': 8,
-                'circle-color': featureColors[feature.id]
-            }}
-        }});
-    }}
    
     updateSidebarMeasurements(e);
     mapSaved = false;
@@ -415,21 +414,23 @@ map.on('draw.update', (e) => {{
         }}
     }});
 
-        if (feature.geometry.type === 'Point') {{
-            // Update the landmark's name and color if they exist
-            if (!feature.properties.name) {{
-                feature.properties.name = featureNames[feature.id] || `Landmark ${{landmarkCount}}`;
-                featureNames[feature.id] = feature.properties.name;
-            }}
+       if (feature.geometry.type === 'Point') {{
+    // Update the landmark's name and color if they exist
+    if (!feature.properties.name) {{
+        feature.properties.name = featureNames[feature.id] || `Landmark ${{landmarkCount + 1}}`;
+        featureNames[feature.id] = feature.properties.name;
+    }}
 
-            if (!featureColors[feature.id]) {{
-                featureColors[feature.id] = 'black'; // Default color
-            }}
+    if (!featureColors[feature.id]) {{
+        featureColors[feature.id] = 'black'; // Default color
+    }}
 
-            // Update the landmark's source to ensure changes are reflected
-            map.getSource('marker-' + feature.id)?.setData(feature);
-        }}
-    }});
+    // Update the landmark's source to ensure changes are reflected
+    if (map.getSource('marker-' + feature.id)) {{
+        map.getSource('marker-' + feature.id).setData(feature);
+    }}
+}}
+
     
     // Send the updated pipe data to the backend
     sendPipeDataToBackend();
@@ -443,37 +444,6 @@ map.on('draw.delete', (e) => {{
    deleteFeature(e);
    mapSaved = false
 }});
-
-function sendLandmarkDataToBackend() {{
-    const landmarkData = landmarks.map((landmark) => {{
-        return {{
-            name: featureNames[landmark.id],
-            color: featureColors[landmark.id],
-            coordinates: landmark.geometry.coordinates
-        }};
-    }});
-
-    // Send the landmark list to the backend
-    fetch("https://fastapi-test-production-1ba4.up.railway.app/send-landmarks/", {{
-        method: "POST",
-        headers: {{
-            "Content-Type": "application/json",
-        }},
-        body: JSON.stringify({{ landmarks: landmarkData }})
-    }})
-    .then(response => response.json())
-    .then(data => {{
-        if (data.status === "success") {{
-            console.log("Landmarks sent successfully:", data);
-        }} else {{
-            console.error("Failed to send landmarks:", data.message);
-        }}
-    }})
-    .catch(error => {{
-        console.error("Error sending landmarks:", error);
-    }});
-}}
-
 
 function getSelectedDistances() {{
     let selectedPipes = [];
