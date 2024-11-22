@@ -414,7 +414,7 @@ map.on('draw.update', (e) => {{
         }}
     }});
 
-       if (feature.geometry.type === 'Point') {{
+if (feature.geometry.type === 'Point') {{
     // Update the landmark's name and color if they exist
     if (!feature.properties.name) {{
         feature.properties.name = featureNames[feature.id] || `Landmark ${{landmarkCount + 1}}`;
@@ -448,7 +448,6 @@ map.on('draw.delete', (e) => {{
 function sendLandmarkDataToBackend() {{
     const landmarkData = landmarks.map((landmark) => ({{
         name: featureNames[landmark.id],
-        color: featureColors[landmark.id],
         coordinates: landmark.geometry.coordinates,
     }}));
 
