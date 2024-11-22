@@ -361,6 +361,35 @@ map.on('draw.create', (e) => {{
         sendPipeDataToBackend();
     }}
 
+    if (feature.geometry.type === 'Point') {{
+        // Prompt for the name
+        const name = prompt("Enter a name for this landmark:");
+
+        // Assign default name if none is provided
+        feature.properties.name = name || `Landmark ${{landmarkCount}}`;
+        featureNames[feature.id] = feature.properties.name;
+        landmarks.push(feature); // Add to landmarks array
+        landmarkCount++;
+
+        // Prompt for the color
+        const color = prompt("Enter a color for this landmark (e.g., black, white):");
+        featureColors[feature.id] = color || 'black';
+
+        // Add the landmark layer with the assigned color
+        map.addLayer({{
+            id: 'marker-' + feature.id,
+            type: 'circle',
+            source: {{
+                type: 'geojson',
+                data: feature
+            }},
+            paint: {{
+                'circle-radius': 8,
+                'circle-color': featureColors[feature.id]
+            }}
+        }});
+    }}
+    sendLandmarkDataToBackend(); 
     updateSidebarMeasurements(e);
     mapSaved = false;
 }});
@@ -386,9 +415,25 @@ map.on('draw.update', (e) => {{
         }}
     }});
 
+          if (feature.geometry.type === 'Point') {{
+            // Update the landmark's name and color if they exist
+            if (!feature.properties.name) {{
+                feature.properties.name = featureNames[feature.id] || `Landmark ${{landmarkCount}}`;
+                featureNames[feature.id] = feature.properties.name;
+            }}
+
+            if (!featureColors[feature.id]) {{
+                featureColors[feature.id] = 'black'; // Default color
+            }}
+
+            // Update the landmark's source to ensure changes are reflected
+            map.getSource('marker-' + feature.id)?.setData(feature);
+        }}
+    }});
     // Send the updated pipe data to the backend
     sendPipeDataToBackend();
 
+    sendLandmarkDataToBackend();
     updateSidebarMeasurements(e);
     mapSaved = false;
 }});
@@ -398,6 +443,36 @@ map.on('draw.delete', (e) => {{
    deleteFeature(e);
    mapSaved = false
 }});
+
+function sendLandmarkDataToBackend() {{
+    const landmarkData = landmarks.map((landmark) => {{
+        return {{
+            name: featureNames[landmark.id],
+            color: featureColors[landmark.id],
+            coordinates: landmark.geometry.coordinates
+        }};
+    }});
+
+    // Send the landmark list to the backend
+    fetch("https://fastapi-test-production-1ba4.up.railway.app/send-landmarks/", {{
+        method: "POST",
+        headers: {{
+            "Content-Type": "application/json",
+        }},
+        body: JSON.stringify({{ landmarks: landmarkData }})
+    }})
+    .then(response => response.json())
+    .then(data => {{
+        if (data.status === "success") {{
+            console.log("Landmarks sent successfully:", data);
+        }} else {{
+            console.error("Failed to send landmarks:", data.message);
+        }}
+    }})
+    .catch(error => {{
+        console.error("Error sending landmarks:", error);
+    }});
+}}
 
 
 function getSelectedDistances() {{
@@ -1077,7 +1152,34 @@ def get_distance_values():
         st.error(f"Error fetching pipes data from backend: {e}")
         return None, None
 
+def get_landmark_values():
+    """Fetch landmark data from the API."""
+    try:
+        response = requests.get("https://fastapi-test-production-1ba4.up.railway.app/get-landmarks/")
+        if response.status_code == 200:
+            data = response.json()
+            if data["status"] == "success":
+                return data["landmarks"]
+            else:
+                st.warning("No landmarks data available.")
+                return []
+        else:
+            st.error("Failed to fetch landmarks from the backend.")
+            return []
+    except Exception as e:
+        st.error(f"Error fetching landmarks from backend: {e}")
+        return []
 
+# Display landmarks in Streamlit
+def display_landmarks():
+    st.subheader("Landmarks")
+    landmarks = get_landmark_values()
+
+    if landmarks:
+        df = pd.DataFrame(landmarks)
+        st.table(df)  # Show landmarks in a table
+    else:
+        st.info("No landmarks available.")
 ################################## Storage ##################################################
 
 # File to store data persistently
@@ -1194,6 +1296,9 @@ def main_storage():
 # Function to assign mediums in pipe_main()
 def pipe_main():
     st.title("Pipe Selection Tool")
+
+    # Display landmarks
+    display_landmarks()
 
     # User inputs for pressure, temperature, and medium
     pressure, temperature, medium = get_user_inputs1()
