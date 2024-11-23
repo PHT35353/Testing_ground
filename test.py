@@ -431,6 +431,33 @@ map.on('draw.delete', (e) => {{
    mapSaved = false
 }});
 
+/ Function to send landmarks data to the backend
+function sendLandmarkDataToBackend() {{
+    const landmarksData = landmarks.map((landmark) => ({{
+        name: landmark.properties.name,
+        coordinates: landmark.geometry.coordinates,
+        color: featureColors[landmark.id] || "black"
+    }}));
+
+    fetch("https://fastapi-test-production-1ba4.up.railway.app/send-landmarks/", {{
+        method: "POST",
+        headers: {{
+            "Content-Type": "application/json",
+        }},
+        body: JSON.stringify({{ landmarks: landmarksData }})
+    }})
+        .then((response) => response.json())
+        .then((data) => {{
+            if (data.status === "success") {{
+                console.log("Landmarks sent successfully:", data);
+            }} else {{
+                console.error("Failed to send landmarks:", data.message);
+            }}
+        }})
+        .catch((error) => {{
+            console.error("Error sending landmarks:", error);
+        }});
+}}
 
 function getSelectedDistances() {{
     let selectedPipes = [];
