@@ -1136,7 +1136,7 @@ def get_distance_values():
         st.error(f"Error fetching pipes data from backend: {e}")
         return None, None
         
- def get_landmarks():
+def get_landmarks():
     """Fetch landmarks data from the FastAPI backend."""
     try:
         response = requests.get("https://fastapi-test-production-1ba4.up.railway.app/get-landmarks/")
