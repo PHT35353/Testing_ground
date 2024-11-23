@@ -337,38 +337,46 @@ let unnamedPipeCount = 1; // Global counter for unnamed pipes
 map.on('draw.create', (e) => {{
     const feature = e.features[0];
 
+    // Handle LineString creation
     if (feature.geometry.type === 'LineString') {{
-        // Prompt for the name
         const name = prompt("Enter a name for this line:");
+        feature.properties.name = name || `Unnamed Pipe ${{unnamedPipeCount}}`;
+        featureNames[feature.id] = feature.properties.name;
+        unnamedPipeCount++;
 
-        // Assign default name if none is provided
-        if (!name || name.trim() === "") {{
-            featureNames[feature.id] = `Unnamed Pipe ${{unnamedPipeCount}}`;
-            unnamedPipeCount++; // Increment unnamed pipe count
-        }} else {{
-            featureNames[feature.id] = name;
-        }}
-        feature.properties.name = featureNames[feature.id];
-
-        // Calculate distance and save it to pipeData
+        // Calculate the length of the line and store it
         const length = turf.length(feature, {{ units: 'meters' }});
         pipeData[feature.id] = {{
-            name: featureNames[feature.id],
+            name: feature.properties.name,
             distance: length
         }};
 
-        // Send the updated pipe data to the backend
+        // Send updated pipe data to the backend
         sendPipeDataToBackend();
     }}
 
+    // Handle Point creation (Landmarks)
+    if (feature.geometry.type === 'Point') {{
+        const name = prompt("Enter a name for this landmark:");
+        feature.properties.name = name || `Landmark ${{landmarkCount + 1}}`;
+        featureNames[feature.id] = feature.properties.name;
+        landmarks.push(feature);
+        landmarkCount++;
+
+        // Send updated landmark data to the backend
+        sendLandmarkDataToBackend();
+    }}
+
+    // Update the sidebar measurements
     updateSidebarMeasurements(e);
     mapSaved = false;
 }});
 
+
 map.on('draw.update', (e) => {{
-    e.features.forEach(feature => {{
+    e.features.forEach((feature) => {{
         if (feature.geometry.type === 'LineString') {{
-            // Update name if it exists
+            // Ensure the line has a name
             if (!feature.properties.name) {{
                 if (!featureNames[feature.id]) {{
                     featureNames[feature.id] = `Unnamed Pipe ${{unnamedPipeCount}}`;
@@ -377,21 +385,45 @@ map.on('draw.update', (e) => {{
                 feature.properties.name = featureNames[feature.id];
             }}
 
-            // Calculate updated distance and update pipeData
+            // Update the line's length in pipeData
             const length = turf.length(feature, {{ units: 'meters' }});
             pipeData[feature.id] = {{
-                name: featureNames[feature.id],
+                name: feature.properties.name,
                 distance: length
             }};
         }}
+
+        if (feature.geometry.type === 'Point') {{
+            // Ensure the landmark has a name
+            if (!feature.properties.name) {{
+                if (!featureNames[feature.id]) {{
+                    feature.properties.name = `Landmark ${{landmarkCount + 1}}`;
+                    featureNames[feature.id] = feature.properties.name;
+                }}
+            }}
+
+            // Update the landmark data in the landmarks array
+            const existingLandmark = landmarks.find((lm) => lm.id === feature.id);
+            if (existingLandmark) {{
+                existingLandmark.geometry.coordinates = feature.geometry.coordinates;
+                existingLandmark.properties.name = feature.properties.name;
+            }} else {{
+                landmarks.push(feature);
+            }}
+
+            // Update the backend with the modified landmark data
+            sendLandmarkDataToBackend();
+        }}
     }});
 
-    // Send the updated pipe data to the backend
+    // Send updated pipe data to the backend
     sendPipeDataToBackend();
 
+    // Update the sidebar measurements
     updateSidebarMeasurements(e);
     mapSaved = false;
 }});
+
 
 
 map.on('draw.delete', (e) => {{
@@ -1076,6 +1108,36 @@ def get_distance_values():
     except Exception as e:
         st.error(f"Error fetching pipes data from backend: {e}")
         return None, None
+        
+ def get_landmarks():
+    """Fetch landmarks data from the FastAPI backend."""
+    try:
+        response = requests.get("https://fastapi-test-production-1ba4.up.railway.app/get-landmarks/")
+        if response.status_code == 200:
+            data = response.json()
+            if data["status"] == "success":
+                return data["landmarks"]
+            else:
+                st.error("No landmarks found.")
+                return []
+        else:
+            st.error(f"Error fetching landmarks: {response.status_code}")
+            return []
+    except Exception as e:
+        st.error(f"Exception occurred while fetching landmarks: {e}")
+        return []
+
+
+def display_landmarks(landmarks):
+    """Display landmarks data in Streamlit."""
+    if landmarks:
+        st.subheader("Landmarks Data")
+        for landmark in landmarks:
+            st.markdown(f"- **Name**: {landmark['name']}")
+            st.markdown(f"  **Coordinates**: {landmark['coordinates']}")
+    else:
+        st.info("No landmarks to display.")
+       
 
 
 ################################## Storage ##################################################
@@ -1195,6 +1257,17 @@ def main_storage():
 def pipe_main():
     st.title("Pipe Selection Tool")
 
+    # Fetch and display landmarks
+    landmarks = get_landmarks()
+    if landmarks:
+        st.markdown("### Landmarks Summary")
+        for landmark in landmarks:
+            st.markdown(f"- **Name**: {landmark['name']}")
+            st.markdown(f"  **Coordinates**: {landmark['coordinates']}")
+        st.markdown("---")
+    else:
+        st.info("No landmarks found.")
+
     # User inputs for pressure, temperature, and medium
     pressure, temperature, medium = get_user_inputs1()
 
@@ -1203,7 +1276,7 @@ def pipe_main():
         # Fetch pipe values
         individual_pipes, total_distance = get_distance_values()
 
-        if individual_pipes is None:
+        if individual_pipes is None or len(individual_pipes) == 0:
             st.warning("No pipe data available yet. Please draw lines on the map to proceed.")
         else:
             selected_pipes = individual_pipes  # Automatically select all individual pipes
@@ -1255,6 +1328,7 @@ def pipe_main():
             stress_calculator(pipe_material, temperature)
             st.markdown("#### Total Pipe Summary:")
             Pipe_finder(pipe_material, pressure, total_selected_distance)
+
 
 # Run the main function
 pipe_main()
