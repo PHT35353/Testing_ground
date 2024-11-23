@@ -431,7 +431,7 @@ map.on('draw.delete', (e) => {{
    mapSaved = false
 }});
 
-/ Function to send landmarks data to the backend
+
 function sendLandmarkDataToBackend() {{
     const landmarksData = landmarks.map((landmark) => ({{
         name: landmark.properties.name,
