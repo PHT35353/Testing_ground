@@ -499,27 +499,41 @@ function getSelectedDistances() {{
 function sendPipeDataToBackend() {{
     const pipeList = Object.keys(pipeData).map(pipeId => {{
         const feature = Draw.get(pipeId);
+
+        if (!feature) {{
+            console.error(`Feature with ID ${{pipeId}} not found.`);
+            return null;
+        }}
+
         const startCoord = feature.geometry.coordinates[0];
         const endCoord = feature.geometry.coordinates[feature.geometry.coordinates.length - 1];
 
         // Identify landmarks for the start and end points of the line
-        let startLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, startCoord) < 0.01);
-        let endLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, endCoord) < 0.01);
+        const startLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, startCoord, {{ units: 'meters' }}) < 10);
+        const endLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, endCoord, {{ units: 'meters' }}) < 10);
 
-        let distanceUnit = length = 'm';
-        let distanceValue = length >= 1 ? length.toFixed(2) : (length * 1000).toFixed(2);
+        // Ensure unique names for start and end landmarks
+        const startLandmarkName = startLandmark ? startLandmark.properties.name : "Unknown Start";
+        const endLandmarkName = endLandmark ? endLandmark.properties.name : "Unknown End";
 
-        Name += '<p>Line ' + featureNames[feature.id] + ' belongs to ' + (startLandmark?.properties.name || 'Unknown') + ' - ' + (endLandmark?.properties.name || 'Unknown') + ': ' + distanceValue + ' ' + distanceUnit + '</p>';
-        const pipeName = Name;
+        // Construct a formatted name for the pipe
+        const pipeName = `Line ${{featureNames[feature.id] || `Unnamed Pipe`} belongs to ${{startLandmarkName}} - ${{endLandmarkName}}`;
+
+        // Update pipe data with correct names and distances
+        pipeData[pipeId] = {{
+            name: pipeName,
+            distance: pipeData[pipeId].distance,
+            coordinates: feature.geometry.coordinates
+        }};
 
         return {{
-            name: pipeName, // Use the formatted name
+            name: pipeName,
             distance: pipeData[pipeId].distance,
-            coordinates: feature ? feature.geometry.coordinates : []
+            coordinates: feature.geometry.coordinates
         }};
-    }});
+    }}).filter(pipe => pipe !== null); // Filter out any invalid pipes
 
-    // Send the pipe list to the backend
+    // Send the updated pipe list to the backend
     fetch("https://fastapi-test-production-1ba4.up.railway.app/send-pipes/", {{
         method: "POST",
         headers: {{
@@ -539,9 +553,6 @@ function sendPipeDataToBackend() {{
         console.error("Error sending pipes:", error);
     }});
 }}
-
-
-
 
  function updateSidebarMeasurements(e) {{
         const data = Draw.getAll();
