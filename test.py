@@ -368,6 +368,7 @@ map.on('draw.create', (e) => {{
     }}
 
     // Update the sidebar measurements
+    sendPipeDataToBackend();  
     updateSidebarMeasurements(e);
     mapSaved = false;
 }});
@@ -421,6 +422,7 @@ map.on('draw.update', (e) => {{
 
     // Update the sidebar measurements
     updateSidebarMeasurements(e);
+    sendPipeDataToBackend();  
     mapSaved = false;
 }});
 
