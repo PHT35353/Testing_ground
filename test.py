@@ -337,21 +337,24 @@ let unnamedPipeCount = 1; // Global counter for unnamed pipes
 map.on('draw.create', (e) => {{
     const feature = e.features[0];
 
-    // Handle LineString creation
     if (feature.geometry.type === 'LineString') {{
         const startCoord = feature.geometry.coordinates[0];
         const endCoord = feature.geometry.coordinates[feature.geometry.coordinates.length - 1];
-        
+
+        // Find the nearest landmarks for the start and end coordinates
         const startLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, startCoord) < 0.01);
         const endLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, endCoord) < 0.01);
-        
+
+        // Prompt for a name and assign properties
         const name = prompt("Enter a name for this line:");
         feature.properties.name = name || `Unnamed Pipe ${{unnamedPipeCount}}`;
         featureNames[feature.id] = feature.properties.name;
         unnamedPipeCount++;
 
-        // Calculate the length of the line and store it
+        // Calculate the length of the line
         const length = turf.length(feature, {{ units: 'meters' }});
+
+        // Update the pipeData object with landmarks
         pipeData[feature.id] = {{
             name: feature.properties.name,
             distance: length,
@@ -368,6 +371,7 @@ map.on('draw.create', (e) => {{
     updateSidebarMeasurements(e);
     mapSaved = false;
 }});
+
 
 map.on('draw.update', (e) => {{
     e.features.forEach((feature) => {{
@@ -395,6 +399,7 @@ map.on('draw.update', (e) => {{
     updateSidebarMeasurements(e);
     mapSaved = false;
 }});
+
 
 
 
@@ -1226,7 +1231,7 @@ def main_storage():
         st.warning("All data is refreshed")
 
 
-# Function to assign mediums in pipe_main()
+#Function to assign mediums in pipe_main()
 def pipe_main():
     st.title("Pipe Selection Tool")
 
@@ -1269,6 +1274,10 @@ def pipe_main():
                 # Display the coordinates of the drawn lines
                 st.markdown(f"**Coordinates:** {pipe['coordinates']}")  # Display the coordinates
 
+                # Display start and end landmarks
+                st.markdown(f"**Start Landmark:** {pipe.get('startLandmark', 'Not assigned')}")
+                st.markdown(f"**End Landmark:** {pipe.get('endLandmark', 'Not assigned')}")
+
                 # Choose the pipe material based on inputs
                 pipe_material = choose_pipe_material(pressure, temperature, medium)
                 st.markdown(f"**Selected Pipe Material:** {pipe_material}")
@@ -1301,6 +1310,7 @@ def pipe_main():
             stress_calculator(pipe_material, temperature)
             st.markdown("#### Total Pipe Summary:")
             Pipe_finder(pipe_material, pressure, total_selected_distance)
+
 
 
 # Run the main function
