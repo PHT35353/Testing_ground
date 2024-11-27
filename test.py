@@ -1255,10 +1255,11 @@ def main_storage():
     # Display stored pipes and landmarks
     st.header("Stored Pipes and Landmarks")
     if pipe_data:
+        # Normalize the `Coordinates` column to ensure consistent types
         table_data = [
             {
                 "Name": name,
-                "Coordinates": details["coordinates"],
+                "Coordinates": str(details["coordinates"]) if details["coordinates"] else "N/A",
                 "Length (meters)": details["length"],
                 "Medium": details.get("medium", "Not assigned"),
             }
@@ -1302,6 +1303,7 @@ def main_storage():
         pipe_data.clear()
         save_data(pipe_data)
         st.warning("All data has been refreshed.")
+
 
 
 
