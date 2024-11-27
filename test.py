@@ -1262,7 +1262,7 @@ def main_storage():
                 start_coord = details["coordinates"][0]
                 end_coord = details["coordinates"][-1]
 
-                def find_closest_landmark(coord, landmarks, threshold=0.01):
+                def find_closest_landmark(coord, landmarks, threshold=0.1):
                     """Find the closest landmark to a given coordinate."""
                     for landmark in landmarks:
                         landmark_coord = landmark["coordinates"]
