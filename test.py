@@ -337,8 +337,9 @@ let unnamedPipeCount = 1; // Global counter for unnamed pipes
 map.on('draw.create', (e) => {{
     const feature = e.features[0];
     if (feature.geometry.type === 'LineString') {{
-        // Prompt for line name if not set
+        // Prompt for line name
         const name = prompt("Enter a name for this line:");
+        feature.properties = feature.properties || {{}}; // Ensure properties exist
         feature.properties.name = name || `Unnamed Pipe ${{unnamedPipeCount}}`;
         featureNames[feature.id] = feature.properties.name;
         unnamedPipeCount++;
@@ -349,10 +350,10 @@ map.on('draw.create', (e) => {{
         const endCoord = feature.geometry.coordinates[feature.geometry.coordinates.length - 1];
 
         // Identify start and end landmarks
-        const startLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, startCoord) < 0.01);
-        const endLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, endCoord) < 0.01);
+        const startLandmark = landmarks.find((lm) => turf.distance(lm.geometry.coordinates, startCoord, {{ units: 'meters' }}) < 10);
+        const endLandmark = landmarks.find((lm) => turf.distance(lm.geometry.coordinates, endCoord, {{ units: 'meters' }}) < 10);
 
-        // Store pipe data with landmark information
+        // Store pipe data
         pipeData[feature.id] = {{
             name: feature.properties.name,
             distance: length,
@@ -361,20 +362,19 @@ map.on('draw.create', (e) => {{
             endLandmark: endLandmark ? {{ name: endLandmark.properties.name, coordinates: endLandmark.geometry.coordinates }} : null
         }};
 
-        // Send updated pipe data to the backend
         sendPipeDataToBackend();
-    }}
-    // Handle Point creation (Landmarks)
-    if (feature.geometry.type === 'Point') {{
+    }} else if (feature.geometry.type === 'Point') {{
+        // Handle landmarks
         const name = prompt("Enter a name for this landmark:");
-        feature.properties.name = name || Landmark ${{landmarkCount + 1}};
+        feature.properties = feature.properties || {{}}; // Ensure properties exist
+        feature.properties.name = name || `Landmark ${{landmarkCount + 1}}`;
         featureNames[feature.id] = feature.properties.name;
         landmarks.push(feature);
         landmarkCount++;
 
-        // Send updated landmark data to the backend
         sendLandmarkDataToBackend();
     }}
+
     updateSidebarMeasurements(e);
     mapSaved = false;
 }});
@@ -382,22 +382,13 @@ map.on('draw.create', (e) => {{
 map.on('draw.update', (e) => {{
     e.features.forEach((feature) => {{
         if (feature.geometry.type === 'LineString') {{
-            // Ensure the line has a name
-            if (!feature.properties.name) {{
-                if (!featureNames[feature.id]) {{
-                    featureNames[feature.id] = `Unnamed Pipe ${{unnamedPipeCount}}`;
-                    unnamedPipeCount++;
-                }}
-                feature.properties.name = featureNames[feature.id];
-            }}
-
-            // Update the line's length and landmarks
-            const length = turf.length(feature, {{units: 'meters' }});
+            // Update line properties
+            const length = turf.length(feature, {{ units: 'meters' }});
             const startCoord = feature.geometry.coordinates[0];
             const endCoord = feature.geometry.coordinates[feature.geometry.coordinates.length - 1];
 
-            const startLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, startCoord) < 0.01);
-            const endLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, endCoord) < 0.01);
+            const startLandmark = landmarks.find((lm) => turf.distance(lm.geometry.coordinates, startCoord, {{ units: 'meters' }}) < 10);
+            const endLandmark = landmarks.find((lm) => turf.distance(lm.geometry.coordinates, endCoord, {{ units: 'meters' }}) < 10);
 
             pipeData[feature.id] = {{
                 name: feature.properties.name,
@@ -405,34 +396,19 @@ map.on('draw.update', (e) => {{
                 coordinates: feature.geometry.coordinates,
                 startLandmark: startLandmark ? {{ name: startLandmark.properties.name, coordinates: startLandmark.geometry.coordinates }} : null,
                 endLandmark: endLandmark ? {{ name: endLandmark.properties.name, coordinates: endLandmark.geometry.coordinates }} : null
-        }};
-            
-         if (feature.geometry.type === 'Point') {{
-            // Ensure the landmark has a name
-            if (!feature.properties.name) {{
-                if (!featureNames[feature.id]) {{
-                    feature.properties.name = Landmark ${{landmarkCount + 1}};
-                    featureNames[feature.id] = feature.properties.name;
-                }}
-            }}
-
-            // Update the landmark data in the landmarks array
+            }};
+        }} else if (feature.geometry.type === 'Point') {{
+            // Update landmark properties
             const existingLandmark = landmarks.find((lm) => lm.id === feature.id);
             if (existingLandmark) {{
                 existingLandmark.geometry.coordinates = feature.geometry.coordinates;
                 existingLandmark.properties.name = feature.properties.name;
-            }} else {{
-                landmarks.push(feature);
             }}
-
-            // Update the backend with the modified landmark data
-            sendLandmarkDataToBackend();
         }}
+    }});
 
-    // Send updated pipe data to the backend
     sendPipeDataToBackend();
-
-    // Update the sidebar measurements
+    sendLandmarkDataToBackend();
     updateSidebarMeasurements(e);
     mapSaved = false;
 }});
