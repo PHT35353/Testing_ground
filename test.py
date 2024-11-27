@@ -1239,11 +1239,7 @@ def main_storage():
                 "Pipe Name": name,
                 "Coordinates": details["coordinates"],
                 "Length (meters)": details["length"],
-                "Medium": details.get("medium", "Not assigned"),
-                "Start Landmark": details["startLandmark"]["name"],
-                "Start Coordinates": details["startLandmark"]["coordinates"],
-                "End Landmark": details["endLandmark"]["name"],
-                "End Coordinates": details["endLandmark"]["coordinates"],
+                "Medium": details.get("medium", "Not assigned")
             }
             for name, details in pipe_data.items()
         ]
