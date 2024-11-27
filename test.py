@@ -336,83 +336,95 @@ let unnamedPipeCount = 1; // Global counter for unnamed pipes
 
 map.on('draw.create', (e) => {{
     const feature = e.features[0];
+
+    // Handle LineString creation
     if (feature.geometry.type === 'LineString') {{
-        // Prompt for line name
         const name = prompt("Enter a name for this line:");
-        feature.properties = feature.properties || {{}}; // Ensure properties exist
         feature.properties.name = name || `Unnamed Pipe ${{unnamedPipeCount}}`;
         featureNames[feature.id] = feature.properties.name;
         unnamedPipeCount++;
 
-        // Calculate the length of the line
+        // Calculate the length of the line and store it
         const length = turf.length(feature, {{ units: 'meters' }});
-        const startCoord = feature.geometry.coordinates[0];
-        const endCoord = feature.geometry.coordinates[feature.geometry.coordinates.length - 1];
-
-        // Identify start and end landmarks
-        const startLandmark = landmarks.find((lm) => turf.distance(lm.geometry.coordinates, startCoord, {{ units: 'meters' }}) < 10);
-        const endLandmark = landmarks.find((lm) => turf.distance(lm.geometry.coordinates, endCoord, {{ units: 'meters' }}) < 10);
-
-        // Store pipe data
         pipeData[feature.id] = {{
             name: feature.properties.name,
-            distance: length,
-            coordinates: feature.geometry.coordinates,
-            startLandmark: startLandmark ? {{ name: startLandmark.properties.name, coordinates: startLandmark.geometry.coordinates }} : null,
-            endLandmark: endLandmark ? {{ name: endLandmark.properties.name, coordinates: endLandmark.geometry.coordinates }} : null
+            distance: length
         }};
 
+        // Send updated pipe data to the backend
         sendPipeDataToBackend();
-    }} else if (feature.geometry.type === 'Point') {{
-        // Handle landmarks
+    }}
+
+    // Handle Point creation (Landmarks)
+    if (feature.geometry.type === 'Point') {{
         const name = prompt("Enter a name for this landmark:");
-        feature.properties = feature.properties || {{}}; // Ensure properties exist
         feature.properties.name = name || `Landmark ${{landmarkCount + 1}}`;
         featureNames[feature.id] = feature.properties.name;
         landmarks.push(feature);
         landmarkCount++;
 
+        // Send updated landmark data to the backend
         sendLandmarkDataToBackend();
     }}
 
+    // Update the sidebar measurements
     updateSidebarMeasurements(e);
     mapSaved = false;
 }});
+
 
 map.on('draw.update', (e) => {{
     e.features.forEach((feature) => {{
         if (feature.geometry.type === 'LineString') {{
-            // Update line properties
+            // Ensure the line has a name
+            if (!feature.properties.name) {{
+                if (!featureNames[feature.id]) {{
+                    featureNames[feature.id] = `Unnamed Pipe ${{unnamedPipeCount}}`;
+                    unnamedPipeCount++;
+                }}
+                feature.properties.name = featureNames[feature.id];
+            }}
+
+            // Update the line's length in pipeData
             const length = turf.length(feature, {{ units: 'meters' }});
-            const startCoord = feature.geometry.coordinates[0];
-            const endCoord = feature.geometry.coordinates[feature.geometry.coordinates.length - 1];
-
-            const startLandmark = landmarks.find((lm) => turf.distance(lm.geometry.coordinates, startCoord, {{ units: 'meters' }}) < 10);
-            const endLandmark = landmarks.find((lm) => turf.distance(lm.geometry.coordinates, endCoord, {{ units: 'meters' }}) < 10);
-
             pipeData[feature.id] = {{
                 name: feature.properties.name,
-                distance: length,
-                coordinates: feature.geometry.coordinates,
-                startLandmark: startLandmark ? {{ name: startLandmark.properties.name, coordinates: startLandmark.geometry.coordinates }} : null,
-                endLandmark: endLandmark ? {{ name: endLandmark.properties.name, coordinates: endLandmark.geometry.coordinates }} : null
+                distance: length
             }};
-        }} else if (feature.geometry.type === 'Point') {{
-            // Update landmark properties
+        }}
+
+        if (feature.geometry.type === 'Point') {{
+            // Ensure the landmark has a name
+            if (!feature.properties.name) {{
+                if (!featureNames[feature.id]) {{
+                    feature.properties.name = `Landmark ${{landmarkCount + 1}}`;
+                    featureNames[feature.id] = feature.properties.name;
+                }}
+            }}
+
+            // Update the landmark data in the landmarks array
             const existingLandmark = landmarks.find((lm) => lm.id === feature.id);
             if (existingLandmark) {{
                 existingLandmark.geometry.coordinates = feature.geometry.coordinates;
                 existingLandmark.properties.name = feature.properties.name;
+            }} else {{
+                landmarks.push(feature);
             }}
+
+            // Update the backend with the modified landmark data
+            sendLandmarkDataToBackend();
         }}
     }});
 
+    // Send updated pipe data to the backend
     sendPipeDataToBackend();
-    sendLandmarkDataToBackend();
+
+    // Update the sidebar measurements
     updateSidebarMeasurements(e);
     mapSaved = false;
 }});
-      
+
+
 
 map.on('draw.delete', (e) => {{
    deleteFeature(e);
@@ -447,38 +459,41 @@ function sendLandmarkDataToBackend() {{
         }});
 }}
 
-function sendPipeDataToBackend() {{
-    const pipeList = Object.keys(pipeData).map(pipeId => {{
-        const feature = Draw.get(pipeId);
-        return {{
-            name: pipeData[pipeId].name,
-            distance: pipeData[pipeId].distance,
-            coordinates: feature ? feature.geometry.coordinates : [],
-            startLandmark: pipeData[pipeId].startLandmark,
-            endLandmark: pipeData[pipeId].endLandmark
-        }};
-    }});
+function getSelectedDistances() {{
+    let selectedPipes = [];
 
-    fetch("https://fastapi-test-production-1ba4.up.railway.app/send-pipes/", {{
-        method: "POST",
-        headers: {{
-            "Content-Type": "application/json",
-        }},
-        body: JSON.stringify({{ pipes: pipeList }})
-    }})
-    .then(response => response.json())
-    .then(data => {{
-        if (data.status === "success") {{
-            console.log("Pipes sent successfully:", data);
-        }} else {{
-            console.error("Failed to send pipes:", data.message);
+    document.querySelectorAll('input[type=checkbox]:checked').forEach(checkbox => {{
+        const pipeId = checkbox.id;
+        if (pipeData[pipeId]) {{
+            const {{ name, distance }} = pipeData[pipeId];
+            selectedPipes.push({{ name: name || 'Unnamed Pipe', distance: distance }});
         }}
-    }})
-    .catch(error => {{
-        console.error("Error sending pipes:", error);
     }});
-}}
 
+    if (selectedPipes.length > 0) {{
+        // Send the selected pipes (with names and distances) to the FastAPI backend
+        fetch("https://fastapi-test-production-1ba4.up.railway.app/send-pipes/", {{
+            method: "POST",
+            headers: {{
+                "Content-Type": "application/json",
+            }},
+            body: JSON.stringify({{ pipes: selectedPipes }})  // Sending the pipes with names and distances as a JSON body
+        }})
+        .then(response => response.json())
+        .then(data => {{
+            if (data.status === "success") {{
+                console.log("Pipes sent successfully:", data);
+            }} else {{
+                console.error("Failed to send pipes:", data.message);
+            }}
+        }})
+        .catch(error => {{
+            console.error("Error sending pipes:", error);
+        }});
+    }} else {{
+        console.log("No pipes selected.");
+    }}
+}}
 
 // Function to send the pipe data (names, distances, and coordinates) to the FastAPI backend
 function sendPipeDataToBackend() {{
@@ -1169,18 +1184,6 @@ def save_data(data):
     with open(DATA_FILE, "w") as file:
         json.dump(data, file, indent=4)
 
-def integrate_api_data(pipe_data, api_pipes):
-    """Integrate API data into the storage system."""
-    for pipe in api_pipes:
-        pipe_name = pipe["name"]
-        if pipe_name not in pipe_data:  # Avoid duplicate entries
-            pipe_data[pipe_name] = {
-                "coordinates": pipe["coordinates"],
-                "length": pipe["distance"],
-                "startLandmark": pipe.get("startLandmark"),
-                "endLandmark": pipe.get("endLandmark")
-            }
-    save_data(pipe_data)
 
 # Function to integrate API data into storage
 def integrate_api_data(pipe_data, api_pipes):
@@ -1221,10 +1224,8 @@ def main_storage():
     st.title("Pipe Storage System")
     st.subheader("Store and View Pipe Details")
 
-    # Fetch pipe data from API
     api_pipes, total_distance = get_distance_values()
     if api_pipes:
-        # Integrate API data into local storage
         integrate_api_data(pipe_data, api_pipes)
         st.success("Fetched and integrated pipe data from API successfully!")
         st.write(f"Total Distance from API: {total_distance} meters")
@@ -1237,15 +1238,12 @@ def main_storage():
                 "Pipe Name": name,
                 "Coordinates": details["coordinates"],
                 "Length (meters)": details["length"],
-                "Start Landmark": details["startLandmark"]["name"] if details.get("startLandmark") else "None",
-                "Start Coordinates": details["startLandmark"]["coordinates"] if details.get("startLandmark") else "None",
-                "End Landmark": details["endLandmark"]["name"] if details.get("endLandmark") else "None",
-                "End Coordinates": details["endLandmark"]["coordinates"] if details.get("endLandmark") else "None",
+                "Medium": details.get("medium", "Not assigned")
             }
             for name, details in pipe_data.items()
         ]
         st.subheader("Pipe Data (Table View)")
-        st.table(table_data)  # Display the data in a table format
+        st.table(table_data)  # Static table
 
         # Download button for the table
         df = pd.DataFrame(table_data)
@@ -1280,8 +1278,6 @@ def main_storage():
         pipe_data.clear()
         save_data(pipe_data)
         st.warning("All data is refreshed")
-
-
 
 
 # Function to assign mediums in pipe_main()
