@@ -1193,9 +1193,8 @@ def integrate_api_data(pipe_data, api_pipes):
         pipe_name = pipe["name"]
         if pipe_name not in pipe_data:  # Avoid duplicate entries
             pipe_data[pipe_name] = {
-                "coordinates": pipe.get("coordinates", []),  # Use empty list as default if not present
-                "length": pipe.get("distance", 0),           # Use 0 as default if not present
-                "landmarks": pipe.get("landmarks", []),      # Use empty list as default if not present
+                "coordinates": pipe["coordinates"],
+                "length": pipe["distance"]
             }
     save_data(pipe_data)
 
@@ -1221,67 +1220,87 @@ def update_pipe_medium(pipe_data, pipe_name, medium):
 # Function to display the storage system
 def main_storage():
     """Main function to run the Pipe Storage System app."""
-    # Load existing data
+    # Load existing pipe data
     pipe_data = load_data()
 
-    st.title("Pipe Storage System")
-    st.subheader("Store and View Pipe Details")
+    st.title("Pipe and Landmark Storage System")
+    st.subheader("Store and View Pipe and Landmark Details")
 
+    # Fetch API data for pipes and landmarks
     api_pipes, total_distance = get_distance_values()
+    landmarks = get_landmarks()
+
+    # Integrate pipes into storage
     if api_pipes:
         integrate_api_data(pipe_data, api_pipes)
         st.success("Fetched and integrated pipe data from API successfully!")
-        st.write(f"Total Distance from API: {total_distance} meters")
+        st.write(f"Total Pipe Distance from API: {total_distance} meters")
 
-    # Display stored pipes
-    st.header("Stored Pipes")
+    # Add landmarks to the storage
+    if landmarks:
+        for landmark in landmarks:
+            landmark_name = landmark["name"]
+            if landmark_name not in pipe_data:  # Avoid duplicate entries
+                pipe_data[landmark_name] = {
+                    "coordinates": landmark["coordinates"],
+                    "length": 0,  # Landmarks don't have a length
+                    "medium": "N/A",  # Not applicable for landmarks
+                }
+
+    # Save updated storage
+    save_data(pipe_data)
+
+    # Display stored pipes and landmarks
+    st.header("Stored Pipes and Landmarks")
     if pipe_data:
         table_data = [
             {
-                "Pipe Name": name,
+                "Name": name,
                 "Coordinates": details["coordinates"],
                 "Length (meters)": details["length"],
                 "Medium": details.get("medium", "Not assigned"),
-                "landmarks": details["landmarks"],
             }
             for name, details in pipe_data.items()
         ]
-        st.subheader("Pipe Data (Table View)")
-        st.table(table_data)  # Static table
 
-        # Download button for the table
+        # Create a DataFrame and display it
         df = pd.DataFrame(table_data)
+        st.subheader("Pipe and Landmark Data (Table View)")
+        st.table(df)
+
+        # Add a download button for the table
         csv_data = io.StringIO()
         df.to_csv(csv_data, index=False)
         st.download_button(
             label="Download Table as CSV",
             data=csv_data.getvalue(),
-            file_name="pipe_data.csv",
+            file_name="pipe_and_landmark_data.csv",
             mime="text/csv"
         )
 
-        # Delete Pipe Interface
-        st.header("Delete a Pipe")
-        with st.form("delete_pipe_form"):
-            pipe_name_to_delete = st.text_input("Pipe Name to Delete", placeholder="Enter pipe name")
-            delete_submitted = st.form_submit_button("Delete Pipe")
+        # Delete a pipe or landmark by name
+        st.header("Delete an Entry")
+        with st.form("delete_entry_form"):
+            name_to_delete = st.text_input("Name to Delete", placeholder="Enter name")
+            delete_submitted = st.form_submit_button("Delete")
 
             if delete_submitted:
-                if pipe_name_to_delete:
-                    if delete_pipe(pipe_data, pipe_name_to_delete):
-                        st.success(f"Pipe '{pipe_name_to_delete}' deleted successfully!")
+                if name_to_delete:
+                    if delete_pipe(pipe_data, name_to_delete):
+                        st.success(f"Entry '{name_to_delete}' deleted successfully!")
                     else:
-                        st.error(f"Pipe '{pipe_name_to_delete}' not found.")
+                        st.error(f"Entry '{name_to_delete}' not found.")
                 else:
-                    st.error("Pipe name is required to delete.")
+                    st.error("Name is required to delete an entry.")
     else:
-        st.info("No pipes stored yet. Add a new pipe to get started.")
+        st.info("No data stored yet. Add pipes or landmarks to get started.")
 
-    # Clear all data
-    if st.button("Refresh data"):  # From clear all data to refresh data
+    # Refresh data
+    if st.button("Refresh Data"):
         pipe_data.clear()
         save_data(pipe_data)
-        st.warning("All data is refreshed")
+        st.warning("All data has been refreshed.")
+
 
 
 # Function to assign mediums in pipe_main()
