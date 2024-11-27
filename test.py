@@ -367,8 +367,7 @@ map.on('draw.create', (e) => {{
         sendLandmarkDataToBackend();
     }}
 
-    // Update the sidebar measurements
-    sendPipeDataToBackend();  
+    // Update the sidebar measurements 
     updateSidebarMeasurements(e);
     mapSaved = false;
 }});
@@ -422,7 +421,6 @@ map.on('draw.update', (e) => {{
 
     // Update the sidebar measurements
     updateSidebarMeasurements(e);
-    sendPipeDataToBackend();  
     mapSaved = false;
 }});
 
@@ -496,6 +494,51 @@ function getSelectedDistances() {{
         console.log("No pipes selected.");
     }}
 }}
+
+function sendPipeDataToBackend() {{
+    const pipeList = Object.keys(pipeData).map(pipeId => {{
+    
+        const length = turf.length(feature);
+        const startCoord = feature.geometry.coordinates[0];
+        const endCoord = feature.geometry.coordinates[feature.geometry.coordinates.length - 1];
+
+        // Identify landmarks for the start and end points of the line
+        let startLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, startCoord) < 0.01);
+        let endLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, endCoord) < 0.01);
+        
+        // Format the pipe name to include landmark names
+        const pipeName = `Line ${{featureNames[feature.id]}} belongs to ${{
+            startLandmark?.properties.name || 'Unknown'
+        }} - ${{endLandmark?.properties.name || 'Unknown'}}`;
+
+        return {{
+            name: pipeName, // Use the formatted name
+            distance: pipeData[pipeId].distance,
+            coordinates: feature ? feature.geometry.coordinates : []
+        }};
+    }});
+
+    // Send the pipe list to the backend
+    fetch("https://fastapi-test-production-1ba4.up.railway.app/send-pipes/", {{
+        method: "POST",
+        headers: {{
+            "Content-Type": "application/json",
+        }},
+        body: JSON.stringify({{ pipes: pipeList }})
+    }})
+    .then(response => response.json())
+    .then(data => {{
+        if (data.status === "success") {{
+            console.log("Pipes sent successfully:", data);
+        }} else {{
+            console.error("Failed to send pipes:", data.message);
+        }}
+    }})
+    .catch(error => {{
+        console.error("Error sending pipes:", error);
+    }});
+}}
+
 
 
  function updateSidebarMeasurements(e) {{
@@ -643,48 +686,6 @@ function getSelectedDistances() {{
         }}
         document.getElementById('measurements').innerHTML = sidebarContent;
    }}
-
-   // Function to send the pipe data (names, distances, and coordinates) to the FastAPI backend
-function sendPipeDataToBackend() {{
-    const pipeList = Object.keys(pipeData).map(pipeId => {{
-        
-        // Construct a formatted name for the pipe
-        const pipeName =  sidebarContent
-
-        // Update pipe data with correct names and distances
-        pipeData[pipeId] = {{
-            name: pipeName,
-            distance: pipeData[pipeId].distance,
-            coordinates: feature.geometry.coordinates
-        }};
-
-        return {{
-            name: pipeName,
-            distance: pipeData[pipeId].distance,
-            coordinates: feature.geometry.coordinates
-        }};
-    }}).filter(pipe => pipe !== null); // Filter out any invalid pipes
-
-    // Send the updated pipe list to the backend
-    fetch("https://fastapi-test-production-1ba4.up.railway.app/send-pipes/", {{
-        method: "POST",
-        headers: {{
-            "Content-Type": "application/json",
-        }},
-        body: JSON.stringify({{ pipes: pipeList }})
-    }})
-    .then(response => response.json())
-    .then(data => {{
-        if (data.status === "success") {{
-            console.log("Pipes sent successfully:", data);
-        }} else {{
-            console.error("Failed to send pipes:", data.message);
-        }}
-    }})
-    .catch(error => {{
-        console.error("Error sending pipes:", error);
-    }});
-}}
     
     function toggleSidebar() {{
         var sidebar = document.getElementById('sidebar');
