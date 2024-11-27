@@ -1262,14 +1262,17 @@ def main_storage():
                 start_coord = details["coordinates"][0]
                 end_coord = details["coordinates"][-1]
 
-                def find_closest_landmark(coord, landmarks, threshold=0.1):
+                def find_closest_landmark(coord, landmarks, threshold=0.01):
                     """Find the closest landmark to a given coordinate."""
+                    closest_landmark = None
+                    min_distance = float("inf")
                     for landmark in landmarks:
                         landmark_coord = landmark["coordinates"]
                         distance = ((landmark_coord[0] - coord[0]) ** 2 + (landmark_coord[1] - coord[1]) ** 2) ** 0.5
-                        if distance <= threshold:
-                            return landmark["name"]
-                    return "Unknown"
+                        if distance <= threshold and distance < min_distance:
+                            closest_landmark = landmark["name"]
+                            min_distance = distance
+                    return closest_landmark or "Unknown"
 
                 start_landmark = find_closest_landmark(start_coord, landmarks)
                 end_landmark = find_closest_landmark(end_coord, landmarks)
@@ -1326,6 +1329,7 @@ def main_storage():
         pipe_data.clear()
         save_data(pipe_data)
         st.warning("All data has been refreshed.")
+
 
 
 
