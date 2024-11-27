@@ -405,7 +405,7 @@ map.on('draw.update', (e) => {{
                 coordinates: feature.geometry.coordinates,
                 startLandmark: startLandmark ? {{ name: startLandmark.properties.name, coordinates: startLandmark.geometry.coordinates }} : null,
                 endLandmark: endLandmark ? {{ name: endLandmark.properties.name, coordinates: endLandmark.geometry.coordinates }} : null
-            }};
+        }};
             
          if (feature.geometry.type === 'Point') {{
             // Ensure the landmark has a name
@@ -428,8 +428,7 @@ map.on('draw.update', (e) => {{
             // Update the backend with the modified landmark data
             sendLandmarkDataToBackend();
         }}
-    }});
-    
+
     // Send updated pipe data to the backend
     sendPipeDataToBackend();
 
