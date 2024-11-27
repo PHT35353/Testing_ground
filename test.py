@@ -503,13 +503,14 @@ function sendPipeDataToBackend() {{
         const endCoord = feature.geometry.coordinates[feature.geometry.coordinates.length - 1];
 
         // Identify landmarks for the start and end points of the line
-        const startLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, startCoord) < 0.01);
-        const endLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, endCoord) < 0.01);
+        let startLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, startCoord) < 0.01);
+        let endLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, endCoord) < 0.01);
 
-        // Format the pipe name to include landmark names
-        const pipeName = `Line ${{pipeData[pipeId].name}} belongs to ${{
-            startLandmark?.properties.name || 'Unknown'
-        }} - ${{endLandmark?.properties.name || 'Unknown'}}`;
+        let distanceUnit = length = 'm';
+        let distanceValue = length >= 1 ? length.toFixed(2) : (length * 1000).toFixed(2);
+
+        Name += '<p>Line ' + featureNames[feature.id] + ' belongs to ' + (startLandmark?.properties.name || 'Unknown') + ' - ' + (endLandmark?.properties.name || 'Unknown') + ': ' + distanceValue + ' ' + distanceUnit + '</p>';
+        const pipeName = Name;
 
         return {{
             name: pipeName, // Use the formatted name
