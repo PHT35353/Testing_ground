@@ -565,19 +565,6 @@ function sendPipeDataToBackend() {{
                         featureColors[feature.id] = lineColor || 'blue';
                     }}
 
-                    pipeData[feature.id] = {{
-                        name: featureNames[feature.id],
-                        distance: length,
-                        startLandmark: {{
-                            name: startLandmark?.properties?.name || 'Unknown',
-                            coordinates: startLandmark?.geometry?.coordinates || null
-                        }},
-                        endLandmark: {{
-                            name: endLandmark?.properties?.name || 'Unknown',
-                            coordinates: endLandmark?.geometry?.coordinates || null
-                        }}
-                    }};
-                    
                     // Update the feature's source when it's moved to ensure the color moves with it
                     map.getSource('line-' + feature.id)?.setData(feature);
 
