@@ -499,9 +499,20 @@ function getSelectedDistances() {{
 function sendPipeDataToBackend() {{
     const pipeList = Object.keys(pipeData).map(pipeId => {{
         const feature = Draw.get(pipeId);
-        
+        const startCoord = feature.geometry.coordinates[0];
+        const endCoord = feature.geometry.coordinates[feature.geometry.coordinates.length - 1];
+
+        // Identify landmarks for the start and end points of the line
+        const startLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, startCoord) < 0.01);
+        const endLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, endCoord) < 0.01);
+
+        // Format the pipe name to include landmark names
+        const pipeName = `Line ${{pipeData[pipeId].name}} belongs to ${{
+            startLandmark?.properties.name || 'Unknown'
+        }} - ${{endLandmark?.properties.name || 'Unknown'}}`;
+
         return {{
-            name: pipeData[pipeId].name,
+            name: pipeName, // Use the formatted name
             distance: pipeData[pipeId].distance,
             coordinates: feature ? feature.geometry.coordinates : []
         }};
@@ -527,6 +538,7 @@ function sendPipeDataToBackend() {{
         console.error("Error sending pipes:", error);
     }});
 }}
+
 
 
 
@@ -1208,7 +1220,6 @@ def update_pipe_medium(pipe_data, pipe_name, medium):
         return True
     return False
 
-# Function to display the storage system
 def main_storage():
     """Main function to run the Pipe Storage System app."""
     # Load existing pipe data
@@ -1244,11 +1255,12 @@ def main_storage():
     # Display stored pipes and landmarks
     st.header("Stored Pipes and Landmarks")
     if pipe_data:
-        # Normalize the `Coordinates` column to ensure consistent types
+        # Prepare the table data for display
         table_data = []
         for name, details in pipe_data.items():
-            # Format the name for pipes
+            # Format the name based on the type of entry
             if "length" in details and details["length"] > 0:
+                # If it's a pipe, associate it with landmarks
                 start_landmark = next(
                     (lm for lm in landmarks if lm["coordinates"] == details["coordinates"][0]), {"name": "Unknown"}
                 )
@@ -1257,10 +1269,10 @@ def main_storage():
                 )
                 formatted_name = f"Line {name} belongs to {start_landmark['name']} - {end_landmark['name']}"
             else:
-                # For landmarks or entries without length, use the name as-is
+                # For landmarks or other entries without length, use the name as-is
                 formatted_name = name
 
-            # Prepare table data
+            # Add the formatted entry to the table data
             table_data.append(
                 {
                     "Name": formatted_name,
@@ -1270,7 +1282,7 @@ def main_storage():
                 }
             )
 
-        # Create a DataFrame and display it
+        # Convert table data to a DataFrame
         df = pd.DataFrame(table_data)
         st.subheader("Pipe and Landmark Data (Table View)")
         st.table(df)
@@ -1307,9 +1319,6 @@ def main_storage():
         pipe_data.clear()
         save_data(pipe_data)
         st.warning("All data has been refreshed.")
-
-
-
 
 
 # Function to assign mediums in pipe_main()
