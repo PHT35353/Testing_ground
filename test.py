@@ -503,8 +503,8 @@ function sendPipeDataToBackend() {{
         const endCoord = feature.geometry.coordinates[feature.geometry.coordinates.length - 1];
 
         // Identify landmarks for the start and end points of the line
-        let startLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, startCoord) < 0.01);
-        let endLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, endCoord) < 0.01);
+        const startLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, startCoord) < 0.01);
+        const endLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, endCoord) < 0.01);
 
         // Format the pipe name to include landmark names
         const pipeName = `Line ${{pipeData[pipeId].name}}`;
