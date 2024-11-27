@@ -1245,15 +1245,30 @@ def main_storage():
     st.header("Stored Pipes and Landmarks")
     if pipe_data:
         # Normalize the `Coordinates` column to ensure consistent types
-        table_data = [
-            {
-                "Name": name,
-                "Coordinates": str(details["coordinates"]) if details["coordinates"] else "N/A",
-                "Length (meters)": details["length"],
-                "Medium": details.get("medium", "Not assigned"),
-            }
-            for name, details in pipe_data.items()
-        ]
+        table_data = []
+        for name, details in pipe_data.items():
+            # Format the name for pipes
+            if "length" in details and details["length"] > 0:
+                start_landmark = next(
+                    (lm for lm in landmarks if lm["coordinates"] == details["coordinates"][0]), {"name": "Unknown"}
+                )
+                end_landmark = next(
+                    (lm for lm in landmarks if lm["coordinates"] == details["coordinates"][-1]), {"name": "Unknown"}
+                )
+                formatted_name = f"Line {name} belongs to {start_landmark['name']} - {end_landmark['name']}"
+            else:
+                # For landmarks or entries without length, use the name as-is
+                formatted_name = name
+
+            # Prepare table data
+            table_data.append(
+                {
+                    "Name": formatted_name,
+                    "Coordinates": str(details["coordinates"]) if details["coordinates"] else "N/A",
+                    "Length (meters)": details.get("length", 0),
+                    "Medium": details.get("medium", "Not assigned"),
+                }
+            )
 
         # Create a DataFrame and display it
         df = pd.DataFrame(table_data)
@@ -1292,6 +1307,7 @@ def main_storage():
         pipe_data.clear()
         save_data(pipe_data)
         st.warning("All data has been refreshed.")
+
 
 
 
