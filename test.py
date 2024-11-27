@@ -13,6 +13,11 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import threading
 import uvicorn
+from streamlit.runtime.scriptrunner import RerunException
+from streamlit.runtime.scriptrunner import ScriptRunner
+
+# Set page layout to wide
+st.set_page_config(layout='wide')
 
 # Set up a title for the app
 st.title("Piping tool")
@@ -246,7 +251,7 @@ mapbox_map_html = f"""
    function loadMap() {{
     const user_id = "user1";  // Replace with dynamic user ID if needed
 
-    fetch(https://fastapi-test-production-1ba4.up.railway.app/load-map/${{user_id}})
+    fetch(`https://fastapi-test-production-1ba4.up.railway.app/load-map/${{user_id}}`)
     .then(response => response.json())
     .then(data => {{
         if (data.status === "success") {{
@@ -340,7 +345,7 @@ map.on('draw.create', (e) => {{
     // Handle LineString creation
     if (feature.geometry.type === 'LineString') {{
         const name = prompt("Enter a name for this line:");
-        feature.properties.name = name || Unnamed Pipe ${{unnamedPipeCount}};
+        feature.properties.name = name || `Unnamed Pipe ${{unnamedPipeCount}}`;
         featureNames[feature.id] = feature.properties.name;
         unnamedPipeCount++;
 
@@ -358,7 +363,7 @@ map.on('draw.create', (e) => {{
     // Handle Point creation (Landmarks)
     if (feature.geometry.type === 'Point') {{
         const name = prompt("Enter a name for this landmark:");
-        feature.properties.name = name || Landmark ${{landmarkCount + 1}};
+        feature.properties.name = name || `Landmark ${{landmarkCount + 1}}`;
         featureNames[feature.id] = feature.properties.name;
         landmarks.push(feature);
         landmarkCount++;
@@ -379,7 +384,7 @@ map.on('draw.update', (e) => {{
             // Ensure the line has a name
             if (!feature.properties.name) {{
                 if (!featureNames[feature.id]) {{
-                    featureNames[feature.id] = Unnamed Pipe ${{unnamedPipeCount}};
+                    featureNames[feature.id] = `Unnamed Pipe ${{unnamedPipeCount}}`;
                     unnamedPipeCount++;
                 }}
                 feature.properties.name = featureNames[feature.id];
@@ -397,7 +402,7 @@ map.on('draw.update', (e) => {{
             // Ensure the landmark has a name
             if (!feature.properties.name) {{
                 if (!featureNames[feature.id]) {{
-                    feature.properties.name = Landmark ${{landmarkCount + 1}};
+                    feature.properties.name = `Landmark ${{landmarkCount + 1}}`;
                     featureNames[feature.id] = feature.properties.name;
                 }}
             }}
@@ -439,7 +444,7 @@ function sendLandmarkDataToBackend() {{
         color: featureColors[landmark.id] || "black"
     }}));
 
-    fetch("https://fastapi-test-production-1ba4.up.railway.app/send-landmarks/", {{
+    fetch("https://fastapi-test-production-1ba4.up.railway.app/send-pipes/", {{
         method: "POST",
         headers: {{
             "Content-Type": "application/json",
@@ -712,7 +717,7 @@ function deleteFeature(e) {{
             map.removeSource('marker-' + featureId);
         }}
 
-        console.log(Feature ${{featureId}} and its color have been removed.);
+        console.log(`Feature ${{featureId}} and its color have been removed.`);
     }});
 
    
@@ -1137,24 +1142,32 @@ def get_distance_values():
         return None, None
         
 def get_landmarks():
-    """Fetch landmarks data from the FastAPI backend."""
+    """
+    Fetch landmarks data from the FastAPI backend and return it as a dictionary.
+    """
     try:
         response = requests.get("https://fastapi-test-production-1ba4.up.railway.app/get-landmarks/")
         if response.status_code == 200:
             data = response.json()
             if data["status"] == "success":
-                return data["landmarks"]
+                landmarks = {
+                    landmark["name"]: {
+                        "color": landmark["color"],
+                        "coordinates": landmark["coordinates"]
+                    }
+                    for landmark in data["landmarks"]
+                }
+                return landmarks
             else:
                 st.error("No landmarks found.")
-                return []
+                return {}
         else:
             st.error(f"Error fetching landmarks: {response.status_code}")
-            return []
+            return {}
     except Exception as e:
         st.error(f"Exception occurred while fetching landmarks: {e}")
-        return []
-
-
+        return {}
+        
 def display_landmarks(landmarks):
     """Display landmarks data in Streamlit."""
     if landmarks:
@@ -1185,21 +1198,33 @@ def save_data(data):
         json.dump(data, file, indent=4)
 
 
-# Function to integrate API data into storage
-def integrate_api_data(pipe_data, api_pipes):
-    """Integrate API data into the storage system."""
+def integrate_api_data(pipe_data, api_pipes, landmarks):
+    """Integrate API data into the storage system, including landmarks."""
+    
+    # Add pipes to the pipe_data
     for pipe in api_pipes:
         pipe_name = pipe["name"]
-        if pipe_name not in pipe_data:  # Avoid duplicate entries
+        if pipe_name not in pipe_data:
             pipe_data[pipe_name] = {
                 "coordinates": pipe["coordinates"],
                 "length": pipe["distance"]
             }
+    
+    # Add landmarks to the pipe_data
+    for landmark in landmarks:
+        if isinstance(landmark, dict):
+            landmark_name = landmark["name"]
+            if landmark_name not in pipe_data:
+                pipe_data[landmark_name] = {
+                    "color": landmark["color"],
+                    "coordinates": landmark["coordinates"],
+                    "type": "landmark"  # Identify entries as landmarks
+                }
+            
     save_data(pipe_data)
 
 # Function to delete a specific pipe by name
 def delete_pipe(pipe_data, pipe_name):
-    """Delete a specific pipe by name from the storage."""
     if pipe_name in pipe_data:
         del pipe_data[pipe_name]
         save_data(pipe_data)
@@ -1215,7 +1240,69 @@ def update_pipe_medium(pipe_data, pipe_name, medium):
         return True
     return False
 
-# Function to display the storage system
+def display_interactive_table(pipe_data):
+    """Display an interactive table for selecting and viewing pipe and landmark data."""
+    
+    # Separate pipes and landmarks
+    pipe_table_data = []
+    landmark_table_data = []
+
+    for name, details in pipe_data.items():
+        if "length" in details:  # This is a pipe
+            pipe_table_data.append({
+                "Name": name,
+                "Coordinates": details["coordinates"],
+                "Length (meters)": details["length"]
+            })
+        elif "color" in details:  # This is a landmark
+            landmark_table_data.append({
+                "Name": name,
+                "Color": details["color"],
+                "Coordinates": details["coordinates"]
+            })
+
+    # Convert pipe data to a DataFrame
+    pipe_df = pd.DataFrame(pipe_table_data)
+    landmark_df = pd.DataFrame(landmark_table_data)
+
+    # Display pipes data
+    st.subheader("Pipes Data Table")
+    if not pipe_df.empty:
+        st.write("### Pipe Data")
+        st.dataframe(pipe_df, use_container_width=True)
+
+        # Optional: Download pipe data as CSV
+        csv_data = io.StringIO()
+        pipe_df.to_csv(csv_data, index=False)
+        st.download_button(
+            label="Download Pipe Data as CSV",
+            data=csv_data.getvalue(),
+            file_name="pipe_data.csv",
+            mime="text/csv"
+        )
+    else:
+        st.info("No pipe data to display.")
+
+    # Display landmarks data
+    st.subheader("Landmarks Data Table")
+    if not landmark_df.empty:
+        st.write("### Landmark Data")
+        st.dataframe(landmark_df, use_container_width=True)
+
+        # Optional: Download landmark data as CSV
+        csv_data = io.StringIO()
+        landmark_df.to_csv(csv_data, index=False)
+        st.download_button(
+            label="Download Landmark Data as CSV",
+            data=csv_data.getvalue(),
+            file_name="landmark_data.csv",
+            mime="text/csv"
+        )
+    else:
+        st.info("No landmark data to display.")
+
+
+# Main function to run the Pipe Storage System app
 def main_storage():
     """Main function to run the Pipe Storage System app."""
     # Load existing data
@@ -1224,60 +1311,45 @@ def main_storage():
     st.title("Pipe Storage System")
     st.subheader("Store and View Pipe Details")
 
+    # Fetch and integrate API pipe data
     api_pipes, total_distance = get_distance_values()
+    landmarks = get_landmarks()
     if api_pipes:
-        integrate_api_data(pipe_data, api_pipes)
+        integrate_api_data(pipe_data, api_pipes, landmarks)
         st.success("Fetched and integrated pipe data from API successfully!")
         st.write(f"Total Distance from API: {total_distance} meters")
 
     # Display stored pipes
     st.header("Stored Pipes")
     if pipe_data:
-        table_data = [
-            {
-                "Pipe Name": name,
-                "Coordinates": details["coordinates"],
-                "Length (meters)": details["length"],
-                "Medium": details.get("medium", "Not assigned")
-            }
-            for name, details in pipe_data.items()
-        ]
-        st.subheader("Pipe Data (Table View)")
-        st.table(table_data)  # Static table
-
-        # Download button for the table
-        df = pd.DataFrame(table_data)
-        csv_data = io.StringIO()
-        df.to_csv(csv_data, index=False)
-        st.download_button(
-            label="Download Table as CSV",
-            data=csv_data.getvalue(),
-            file_name="pipe_data.csv",
-            mime="text/csv"
-        )
-
-        # Delete Pipe Interface
-        st.header("Delete a Pipe")
-        with st.form("delete_pipe_form"):
-            pipe_name_to_delete = st.text_input("Pipe Name to Delete", placeholder="Enter pipe name")
-            delete_submitted = st.form_submit_button("Delete Pipe")
-
-            if delete_submitted:
-                if pipe_name_to_delete:
-                    if delete_pipe(pipe_data, pipe_name_to_delete):
-                        st.success(f"Pipe '{pipe_name_to_delete}' deleted successfully!")
-                    else:
-                        st.error(f"Pipe '{pipe_name_to_delete}' not found.")
-                else:
-                    st.error("Pipe name is required to delete.")
+        display_interactive_table(pipe_data)
     else:
         st.info("No pipes stored yet. Add a new pipe to get started.")
 
-    # Clear all data
+    # Delete Pipe Interface
+    st.header("Delete a Pipe")
+    with st.form("delete_pipe_form"):
+        pipe_name_to_delete = st.text_input("Pipe Name to Delete", placeholder="Enter pipe name")
+        delete_submitted = st.form_submit_button("Delete Pipe")
+
+        if delete_submitted:
+            if pipe_name_to_delete:
+                if delete_pipe(pipe_data, pipe_name_to_delete):
+                    st.success(f"Pipe '{pipe_name_to_delete}' deleted successfully!")
+                    # Trigger st.rerun to refresh the app
+                    st.session_state.value = "Deleted pipe, refreshing..."
+                    st.rerun()
+                else:
+                    st.error(f"Pipe '{pipe_name_to_delete}' not found.")
+            else:
+                st.error("Pipe name is required to delete.")
+
+    # Clear all data button
     if st.button("Refresh data"):  # From clear all data to refresh data
         pipe_data.clear()
         save_data(pipe_data)
-        st.warning("All data is refreshed")
+        st.warning("All data is refreshed.")
+
 
 
 # Function to assign mediums in pipe_main()
@@ -1286,12 +1358,14 @@ def pipe_main():
 
     # Fetch and display landmarks
     landmarks = get_landmarks()
+    
     if landmarks:
-        st.markdown("### Landmarks Summary")
-        for landmark in landmarks:
-            st.markdown(f"- **Name**: {landmark['name']}")
-            st.markdown(f"  **Coordinates**: {landmark['coordinates']}")
-        st.markdown("---")
+        st.subheader("Landmark Data")
+        for name, details in landmarks.items():
+            st.write(f"**{name}**")
+            st.write(f"Color: {details['color']}")
+            st.write(f"Coordinates: {details['coordinates']}")
+            st.markdown("---")
     else:
         st.info("No landmarks found.")
 
