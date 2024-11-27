@@ -544,27 +544,7 @@ function sendPipeDataToBackend() {{
                     const startCoord = feature.geometry.coordinates[0];
                     const endCoord = feature.geometry.coordinates[feature.geometry.coordinates.length - 1];
                     
-                    let startLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, startCoord) < 0.01);
-                    let endLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, endCoord) < 0.01);
-                    const startName = startLandmark?.properties?.name || 'Unknown';
-                    const endName = endLandmark?.properties?.name || 'Unknown';
-                    const lineName = featureNames[feature.id] || `Line ${{index + 1}}`;
-                    sidebarContent += `<p>${{lineName}} belongs to ${{startName}} - ${{endName}}: ${{length.toFixed(2)}} m</p>`;
-
-                     pipeData[feature.id] = {{
-                        name: lineName,
-                        distance: length,
-                        startLandmark: {{
-                            name: startName,
-                            coordinates: startLandmark?.geometry?.coordinates || null
-                        }},
-                        endLandmark: {{
-                            name: endName,
-                            coordinates: endLandmark?.geometry?.coordinates || null
-                        }}
-                     }};
-                   }}
-               }});
+                    
                     let distanceId = 'line' + index;
                     sidebarContent += '<input type="checkbox" id="' + distanceId + '" value="' + length + '" />';
                     sidebarContent += '<label for="' + distanceId + '">' + (featureNames[feature.id] || 'Line ' + (index + 1)) + ': ' + length.toFixed(2) + ' m</label><br>';
@@ -585,6 +565,18 @@ function sendPipeDataToBackend() {{
                         featureColors[feature.id] = lineColor || 'blue';
                     }}
 
+                    pipeData[feature.id] = {{
+                        name: featureNames[feature.id],
+                        distance: length,
+                        startLandmark: {{
+                            name: startLandmark?.properties?.name || 'Unknown',
+                            coordinates: startLandmark?.geometry?.coordinates || null
+                        }},
+                        endLandmark: {{
+                            name: endLandmark?.properties?.name || 'Unknown',
+                            coordinates: endLandmark?.geometry?.coordinates || null
+                        }}
+                    }};
                     
                     // Update the feature's source when it's moved to ensure the color moves with it
                     map.getSource('line-' + feature.id)?.setData(feature);
@@ -605,6 +597,7 @@ function sendPipeDataToBackend() {{
 
                     let distanceUnit = 'm';
                     let distanceValue = length >= 1 ? length.toFixed(2) : (length * 1000).toFixed(2);
+                    sidebarContent += '<p>Line ' + featureNames[feature.id] + ' belongs to ' + (startLandmark?.properties.name || 'Unknown') + ' - ' + (endLandmark?.properties.name || 'Unknown') + ': ' + distanceValue + ' ' + distanceUnit + '</p>';
                     
 
                     
