@@ -543,7 +543,28 @@ function sendPipeDataToBackend() {{
                     totalDistances.push(length);
                     const startCoord = feature.geometry.coordinates[0];
                     const endCoord = feature.geometry.coordinates[feature.geometry.coordinates.length - 1];
+                    
+                    let startLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, startCoord) < 0.01);
+                    let endLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, endCoord) < 0.01);
+                    const startName = startLandmark?.properties?.name || 'Unknown';
+                    const endName = endLandmark?.properties?.name || 'Unknown';
+                    const lineName = featureNames[feature.id] || `Line ${{index + 1}}`;
+                    sidebarContent += `<p>${{lineName}} belongs to ${{startName}} - ${{endName}}: ${{length.toFixed(2)}} m</p>`;
 
+                     pipeData[feature.id] = {{
+                        name: lineName,
+                        distance: length,
+                        startLandmark: {{
+                            name: startName,
+                            coordinates: startLandmark?.geometry?.coordinates || null
+                        }},
+                        endLandmark: {{
+                            name: endName,
+                            coordinates: endLandmark?.geometry?.coordinates || null
+                        }}
+                     }};
+                   }}
+               }});
                     let distanceId = 'line' + index;
                     sidebarContent += '<input type="checkbox" id="' + distanceId + '" value="' + length + '" />';
                     sidebarContent += '<label for="' + distanceId + '">' + (featureNames[feature.id] || 'Line ' + (index + 1)) + ': ' + length.toFixed(2) + ' m</label><br>';
@@ -1239,6 +1260,10 @@ def main_storage():
                 "Coordinates": details["coordinates"],
                 "Length (meters)": details["length"],
                 "Medium": details.get("medium", "Not assigned")
+                "Start Landmark": details["startLandmark"]["name"],
+                "Start Coordinates": details["startLandmark"]["coordinates"],
+                "End Landmark": details["endLandmark"]["name"],
+                "End Coordinates": details["endLandmark"]["coordinates"],
             }
             for name, details in pipe_data.items()
         ]
