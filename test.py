@@ -364,6 +364,18 @@ map.on('draw.create', (e) => {{
         // Send updated pipe data to the backend
         sendPipeDataToBackend();
     }}
+    // Handle Point creation (Landmarks)
+    if (feature.geometry.type === 'Point') {{
+        const name = prompt("Enter a name for this landmark:");
+        feature.properties.name = name || Landmark ${{landmarkCount + 1}};
+        featureNames[feature.id] = feature.properties.name;
+        landmarks.push(feature);
+        landmarkCount++;
+
+        // Send updated landmark data to the backend
+        sendLandmarkDataToBackend();
+    }}
+    updateSidebarMeasurements(e);
     mapSaved = false;
 }});
 
@@ -394,16 +406,38 @@ map.on('draw.update', (e) => {{
                 startLandmark: startLandmark ? {{ name: startLandmark.properties.name, coordinates: startLandmark.geometry.coordinates }} : null,
                 endLandmark: endLandmark ? {{ name: endLandmark.properties.name, coordinates: endLandmark.geometry.coordinates }} : null
             }};
+            
+         if (feature.geometry.type === 'Point') {{
+            // Ensure the landmark has a name
+            if (!feature.properties.name) {{
+                if (!featureNames[feature.id]) {{
+                    feature.properties.name = Landmark ${{landmarkCount + 1}};
+                    featureNames[feature.id] = feature.properties.name;
+                }}
+            }}
+
+            // Update the landmark data in the landmarks array
+            const existingLandmark = landmarks.find((lm) => lm.id === feature.id);
+            if (existingLandmark) {{
+                existingLandmark.geometry.coordinates = feature.geometry.coordinates;
+                existingLandmark.properties.name = feature.properties.name;
+            }} else {{
+                landmarks.push(feature);
+            }}
+
+            // Update the backend with the modified landmark data
+            sendLandmarkDataToBackend();
         }}
     }});
-
+    
     // Send updated pipe data to the backend
     sendPipeDataToBackend();
+
+    // Update the sidebar measurements
+    updateSidebarMeasurements(e);
     mapSaved = false;
 }});
-
-
-
+      
 
 map.on('draw.delete', (e) => {{
    deleteFeature(e);
