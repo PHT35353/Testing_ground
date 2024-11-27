@@ -1299,18 +1299,6 @@ def main_storage():
 # Function to assign mediums in pipe_main()
 def pipe_main():
     st.title("Pipe Selection Tool")
-
-    # Fetch and display landmarks
-    landmarks = get_landmarks()
-    if landmarks:
-        st.markdown("### Landmarks Summary")
-        for landmark in landmarks:
-            st.markdown(f"- **Name**: {landmark['name']}")
-            st.markdown(f"  **Coordinates**: {landmark['coordinates']}")
-        st.markdown("---")
-    else:
-        st.info("No landmarks found.")
-
     # User inputs for pressure, temperature, and medium
     pressure, temperature, medium = get_user_inputs1()
 
