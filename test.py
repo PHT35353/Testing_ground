@@ -517,7 +517,7 @@ function sendPipeDataToBackend() {{
         const endLandmarkName = endLandmark ? endLandmark.properties.name : "Unknown End";
 
         // Construct a formatted name for the pipe
-        const pipeName = `Line ${{featureNames[feature.id] || `Unnamed Pipe`} belongs to ${{startLandmarkName}} - ${{endLandmarkName}}`;
+        const pipeName = `Line ${{featureNames[feature.id] || `Unnamed Pipe`}} belongs to ${{startLandmarkName}} - ${{endLandmarkName}}`;
 
         // Update pipe data with correct names and distances
         pipeData[pipeId] = {{
