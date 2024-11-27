@@ -246,7 +246,7 @@ mapbox_map_html = f"""
    function loadMap() {{
     const user_id = "user1";  // Replace with dynamic user ID if needed
 
-    fetch(https://fastapi-test-production-1ba4.up.railway.app/load-map/${{user_id}})
+    fetch(`https://fastapi-test-production-1ba4.up.railway.app/load-map/${{user_id}}`)
     .then(response => response.json())
     .then(data => {{
         if (data.status === "success") {{
@@ -340,7 +340,7 @@ map.on('draw.create', (e) => {{
     // Handle LineString creation
     if (feature.geometry.type === 'LineString') {{
         const name = prompt("Enter a name for this line:");
-        feature.properties.name = name || Unnamed Pipe ${{unnamedPipeCount}};
+        feature.properties.name = name || `Unnamed Pipe ${{unnamedPipeCount}}`;
         featureNames[feature.id] = feature.properties.name;
         unnamedPipeCount++;
 
@@ -358,7 +358,7 @@ map.on('draw.create', (e) => {{
     // Handle Point creation (Landmarks)
     if (feature.geometry.type === 'Point') {{
         const name = prompt("Enter a name for this landmark:");
-        feature.properties.name = name || Landmark ${{landmarkCount + 1}};
+        feature.properties.name = name || `Landmark ${{landmarkCount + 1}}`;
         featureNames[feature.id] = feature.properties.name;
         landmarks.push(feature);
         landmarkCount++;
@@ -379,7 +379,7 @@ map.on('draw.update', (e) => {{
             // Ensure the line has a name
             if (!feature.properties.name) {{
                 if (!featureNames[feature.id]) {{
-                    featureNames[feature.id] = Unnamed Pipe ${{unnamedPipeCount}};
+                    featureNames[feature.id] = `Unnamed Pipe ${{unnamedPipeCount}}`;
                     unnamedPipeCount++;
                 }}
                 feature.properties.name = featureNames[feature.id];
@@ -397,7 +397,7 @@ map.on('draw.update', (e) => {{
             // Ensure the landmark has a name
             if (!feature.properties.name) {{
                 if (!featureNames[feature.id]) {{
-                    feature.properties.name = Landmark ${{landmarkCount + 1}};
+                    feature.properties.name = `Landmark ${{landmarkCount + 1}}`;
                     featureNames[feature.id] = feature.properties.name;
                 }}
             }}
@@ -712,7 +712,7 @@ function deleteFeature(e) {{
             map.removeSource('marker-' + featureId);
         }}
 
-        console.log(Feature ${{featureId}} and its color have been removed.);
+        console.log(`Feature ${{featureId}} and its color have been removed.`);
     }});
 
    
