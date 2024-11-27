@@ -507,7 +507,7 @@ function sendPipeDataToBackend() {{
         let endLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, endCoord) < 0.01);
         
         // Format the pipe name to include landmark names
-        const pipeName = `Line ${{featureNames[feature.id]}} belongs to ${{
+        const pipeName = `Line ${{pipeData[pipeId].name}} belongs to ${{
             startLandmark?.properties.name || 'Unknown'
         }} - ${{endLandmark?.properties.name || 'Unknown'}}`;
 
