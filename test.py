@@ -1155,16 +1155,6 @@ def get_landmarks():
         st.error(f"Exception occurred while fetching landmarks: {e}")
         return []
 
-
-def display_landmarks(landmarks):
-    """Display landmarks data in Streamlit."""
-    if landmarks:
-        st.subheader("Landmarks Data")
-        for landmark in landmarks:
-            st.markdown(f"- **Name**: {landmark['name']}")
-            st.markdown(f"  **Coordinates**: {landmark['coordinates']}")
-    else:
-        st.info("No landmarks to display.")
        
 
 
@@ -1193,9 +1183,8 @@ def integrate_api_data(pipe_data, api_pipes):
         pipe_name = pipe["name"]
         if pipe_name not in pipe_data:  # Avoid duplicate entries
             pipe_data[pipe_name] = {
-                "coordinates": pipe.get("coordinates", []),
-                "length": pipe.get("distance", 0),
-                "medium": pipe.get("medium", "Not assigned"),
+                "coordinates": pipe["coordinates"],
+                "length": pipe["distance"]
             }
     save_data(pipe_data)
 
