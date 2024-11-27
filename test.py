@@ -1195,6 +1195,7 @@ def integrate_api_data(pipe_data, api_pipes):
             pipe_data[pipe_name] = {
                 "coordinates": pipe["coordinates"],
                 "length": pipe["distance"]
+                "landmarks": data["landmarks"]
             }
     save_data(pipe_data)
 
@@ -1239,7 +1240,8 @@ def main_storage():
                 "Pipe Name": name,
                 "Coordinates": details["coordinates"],
                 "Length (meters)": details["length"],
-                "Medium": details.get("medium", "Not assigned")
+                "Medium": details.get("medium", "Not assigned"),
+                "landmarks": details["landmarks"],
             }
             for name, details in pipe_data.items()
         ]
