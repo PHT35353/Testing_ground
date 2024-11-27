@@ -367,7 +367,7 @@ map.on('draw.create', (e) => {{
         sendLandmarkDataToBackend();
     }}
 
-    // Update the sidebar measurements 
+    // Update the sidebar measurements
     updateSidebarMeasurements(e);
     mapSaved = false;
 }});
