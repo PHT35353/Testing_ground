@@ -246,7 +246,7 @@ mapbox_map_html = f"""
    function loadMap() {{
     const user_id = "user1";  // Replace with dynamic user ID if needed
 
-    fetch(`https://fastapi-test-production-1ba4.up.railway.app/load-map/${{user_id}}`)
+    fetch(https://fastapi-test-production-1ba4.up.railway.app/load-map/${{user_id}})
     .then(response => response.json())
     .then(data => {{
         if (data.status === "success") {{
@@ -337,34 +337,34 @@ let unnamedPipeCount = 1; // Global counter for unnamed pipes
 map.on('draw.create', (e) => {{
     const feature = e.features[0];
 
+    // Handle LineString creation
     if (feature.geometry.type === 'LineString') {{
-        const startCoord = feature.geometry.coordinates[0];
-        const endCoord = feature.geometry.coordinates[feature.geometry.coordinates.length - 1];
-
-        // Find the nearest landmarks for the start and end coordinates
-        const startLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, startCoord) < 0.01);
-        const endLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, endCoord) < 0.01);
-
-        // Prompt for a name and assign properties
         const name = prompt("Enter a name for this line:");
-        feature.properties.name = name || `Unnamed Pipe ${{unnamedPipeCount}}`;
+        feature.properties.name = name || Unnamed Pipe ${{unnamedPipeCount}};
         featureNames[feature.id] = feature.properties.name;
         unnamedPipeCount++;
 
-        // Calculate the length of the line
+        // Calculate the length of the line and store it
         const length = turf.length(feature, {{ units: 'meters' }});
-
-        // Update the pipeData object with landmarks
         pipeData[feature.id] = {{
             name: feature.properties.name,
-            distance: length,
-            coordinates: feature.geometry.coordinates,
-            startLandmark: startLandmark ? startLandmark.properties.name : null,
-            endLandmark: endLandmark ? endLandmark.properties.name : null
+            distance: length
         }};
 
         // Send updated pipe data to the backend
         sendPipeDataToBackend();
+    }}
+
+    // Handle Point creation (Landmarks)
+    if (feature.geometry.type === 'Point') {{
+        const name = prompt("Enter a name for this landmark:");
+        feature.properties.name = name || Landmark ${{landmarkCount + 1}};
+        featureNames[feature.id] = feature.properties.name;
+        landmarks.push(feature);
+        landmarkCount++;
+
+        // Send updated landmark data to the backend
+        sendLandmarkDataToBackend();
     }}
 
     // Update the sidebar measurements
@@ -376,30 +376,53 @@ map.on('draw.create', (e) => {{
 map.on('draw.update', (e) => {{
     e.features.forEach((feature) => {{
         if (feature.geometry.type === 'LineString') {{
-            const startCoord = feature.geometry.coordinates[0];
-            const endCoord = feature.geometry.coordinates[feature.geometry.coordinates.length - 1];
+            // Ensure the line has a name
+            if (!feature.properties.name) {{
+                if (!featureNames[feature.id]) {{
+                    featureNames[feature.id] = Unnamed Pipe ${{unnamedPipeCount}};
+                    unnamedPipeCount++;
+                }}
+                feature.properties.name = featureNames[feature.id];
+            }}
 
-            const startLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, startCoord) < 0.01);
-            const endLandmark = landmarks.find(lm => turf.distance(lm.geometry.coordinates, endCoord) < 0.01);
-
+            // Update the line's length in pipeData
             const length = turf.length(feature, {{ units: 'meters' }});
-
             pipeData[feature.id] = {{
-                name: feature.properties.name || featureNames[feature.id] || `Unnamed Pipe ${{unnamedPipeCount}}`,
-                distance: length,
-                coordinates: feature.geometry.coordinates,
-                startLandmark: startLandmark ? startLandmark.properties.name : null,
-                endLandmark: endLandmark ? endLandmark.properties.name : null
+                name: feature.properties.name,
+                distance: length
             }};
+        }}
 
-            sendPipeDataToBackend();
+        if (feature.geometry.type === 'Point') {{
+            // Ensure the landmark has a name
+            if (!feature.properties.name) {{
+                if (!featureNames[feature.id]) {{
+                    feature.properties.name = Landmark ${{landmarkCount + 1}};
+                    featureNames[feature.id] = feature.properties.name;
+                }}
+            }}
+
+            // Update the landmark data in the landmarks array
+            const existingLandmark = landmarks.find((lm) => lm.id === feature.id);
+            if (existingLandmark) {{
+                existingLandmark.geometry.coordinates = feature.geometry.coordinates;
+                existingLandmark.properties.name = feature.properties.name;
+            }} else {{
+                landmarks.push(feature);
+            }}
+
+            // Update the backend with the modified landmark data
+            sendLandmarkDataToBackend();
         }}
     }});
 
+    // Send updated pipe data to the backend
+    sendPipeDataToBackend();
+
+    // Update the sidebar measurements
     updateSidebarMeasurements(e);
     mapSaved = false;
 }});
-
 
 
 
@@ -407,6 +430,34 @@ map.on('draw.delete', (e) => {{
    deleteFeature(e);
    mapSaved = false
 }});
+
+
+function sendLandmarkDataToBackend() {{
+    const landmarksData = landmarks.map((landmark) => ({{
+        name: landmark.properties.name,
+        coordinates: landmark.geometry.coordinates,
+        color: featureColors[landmark.id] || "black"
+    }}));
+
+    fetch("https://fastapi-test-production-1ba4.up.railway.app/send-landmarks/", {{
+        method: "POST",
+        headers: {{
+            "Content-Type": "application/json",
+        }},
+        body: JSON.stringify({{ landmarks: landmarksData }})
+    }})
+        .then((response) => response.json())
+        .then((data) => {{
+            if (data.status === "success") {{
+                console.log("Landmarks sent successfully:", data);
+            }} else {{
+                console.error("Failed to send landmarks:", data.message);
+            }}
+        }})
+        .catch((error) => {{
+            console.error("Error sending landmarks:", error);
+        }});
+}}
 
 function getSelectedDistances() {{
     let selectedPipes = [];
@@ -447,16 +498,16 @@ function getSelectedDistances() {{
 // Function to send the pipe data (names, distances, and coordinates) to the FastAPI backend
 function sendPipeDataToBackend() {{
     const pipeList = Object.keys(pipeData).map(pipeId => {{
-        const pipe = pipeData[pipeId];
+        const feature = Draw.get(pipeId);
+        
         return {{
-            name: pipe.name,
-            distance: pipe.distance,
-            coordinates: pipe.coordinates,
-            startLandmark: pipe.startLandmark,
-            endLandmark: pipe.endLandmark
+            name: pipeData[pipeId].name,
+            distance: pipeData[pipeId].distance,
+            coordinates: feature ? feature.geometry.coordinates : []
         }};
     }});
 
+    // Send the pipe list to the backend
     fetch("https://fastapi-test-production-1ba4.up.railway.app/send-pipes/", {{
         method: "POST",
         headers: {{
@@ -661,7 +712,7 @@ function deleteFeature(e) {{
             map.removeSource('marker-' + featureId);
         }}
 
-        console.log(`Feature ${{featureId}} and its color have been removed.`);
+        console.log(Feature ${{featureId}} and its color have been removed.);
     }});
 
    
@@ -1187,8 +1238,6 @@ def main_storage():
                 "Pipe Name": name,
                 "Coordinates": details["coordinates"],
                 "Length (meters)": details["length"],
-                "Start Landmark": details.get("startLandmark", "Not assigned"),
-                "End Landmark": details.get("endLandmark", "Not assigned"),
                 "Medium": details.get("medium", "Not assigned")
             }
             for name, details in pipe_data.items()
@@ -1231,7 +1280,7 @@ def main_storage():
         st.warning("All data is refreshed")
 
 
-#Function to assign mediums in pipe_main()
+# Function to assign mediums in pipe_main()
 def pipe_main():
     st.title("Pipe Selection Tool")
 
@@ -1274,10 +1323,6 @@ def pipe_main():
                 # Display the coordinates of the drawn lines
                 st.markdown(f"**Coordinates:** {pipe['coordinates']}")  # Display the coordinates
 
-                # Display start and end landmarks
-                st.markdown(f"**Start Landmark:** {pipe.get('startLandmark', 'Not assigned')}")
-                st.markdown(f"**End Landmark:** {pipe.get('endLandmark', 'Not assigned')}")
-
                 # Choose the pipe material based on inputs
                 pipe_material = choose_pipe_material(pressure, temperature, medium)
                 st.markdown(f"**Selected Pipe Material:** {pipe_material}")
@@ -1310,7 +1355,6 @@ def pipe_main():
             stress_calculator(pipe_material, temperature)
             st.markdown("#### Total Pipe Summary:")
             Pipe_finder(pipe_material, pressure, total_selected_distance)
-
 
 
 # Run the main function
