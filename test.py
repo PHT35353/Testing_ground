@@ -1193,11 +1193,12 @@ def integrate_api_data(pipe_data, api_pipes):
         pipe_name = pipe["name"]
         if pipe_name not in pipe_data:  # Avoid duplicate entries
             pipe_data[pipe_name] = {
-                "coordinates": pipe["coordinates"],
-                "length": pipe["distance"],
-                "landmarks": pipe["landmarks"],
+                "coordinates": pipe.get("coordinates", []),  # Use empty list as default if not present
+                "length": pipe.get("distance", 0),           # Use 0 as default if not present
+                "landmarks": pipe.get("landmarks", []),      # Use empty list as default if not present
             }
     save_data(pipe_data)
+
 
 # Function to delete a specific pipe by name
 def delete_pipe(pipe_data, pipe_name):
