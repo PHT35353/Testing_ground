@@ -1237,10 +1237,10 @@ def main_storage():
                 "Pipe Name": name,
                 "Coordinates": details["coordinates"],
                 "Length (meters)": details["length"],
-                "Start Landmark": details["startLandmark"]["name"] if details["startLandmark"] else "None",
-                "Start Coordinates": details["startLandmark"]["coordinates"] if details["startLandmark"] else "None",
-                "End Landmark": details["endLandmark"]["name"] if details["endLandmark"] else "None",
-                "End Coordinates": details["endLandmark"]["coordinates"] if details["endLandmark"] else "None",
+                "Start Landmark": details["startLandmark"]["name"] if details.get("startLandmark") else "None",
+                "Start Coordinates": details["startLandmark"]["coordinates"] if details.get("startLandmark") else "None",
+                "End Landmark": details["endLandmark"]["name"] if details.get("endLandmark") else "None",
+                "End Coordinates": details["endLandmark"]["coordinates"] if details.get("endLandmark") else "None",
             }
             for name, details in pipe_data.items()
         ]
@@ -1280,6 +1280,7 @@ def main_storage():
         pipe_data.clear()
         save_data(pipe_data)
         st.warning("All data is refreshed")
+
 
 
 
