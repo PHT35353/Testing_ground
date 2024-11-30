@@ -210,103 +210,86 @@ mapbox_map_html = f"""
 
      // Function to save the map data to the backend
     function saveMap() {{
-      const mapData = Draw.getAll(); // Get all drawn features from Mapbox
-      const user_id = "user1"; // Replace with dynamic user ID if needed
+        const mapData = Draw.getAll();  // Get all drawn features from Mapbox
+        const user_id = "user1";  // Replace with dynamic user ID if needed
 
-    // Save feature colors, names, and associations
-      mapData.features.forEach((feature) => {{
-          feature.properties.color = featureColors[feature.id] || 'defaultColor';
-          feature.properties.name = featureNames[feature.id] || '';
+        // Save feature colors and names
+        mapData.features.forEach((feature) => {{
+            feature.properties.color = featureColors[feature.id] || 'defaultColor';
+            feature.properties.name = featureNames[feature.id] || '';
+        }});
 
-        // Add landmark associations for lines
-          if (feature.geometry.type === 'LineString') {{
-              const startCoord = feature.geometry.coordinates[0];
-              const endCoord = feature.geometry.coordinates[feature.geometry.coordinates.length - 1];
-
-              const startLandmark = landmarks.find(
-                  (lm) => turf.distance(lm.geometry.coordinates, startCoord) < 0.01
-              );
-              const endLandmark = landmarks.find(
-                  (lm) => turf.distance(lm.geometry.coordinates, endCoord) < 0.01
-              );
-
-              feature.properties.startLandmark = startLandmark ? startLandmark.properties.name : null;
-              feature.properties.endLandmark = endLandmark ? endLandmark.properties.name : null;
-          }}
-      }});
-
-      fetch("https://fastapi-test-production-1ba4.up.railway.app/save-map/", {{
-          method: "POST",
-          headers: {{
-              "Content-Type": "application/json",
-          }},
-          body: JSON.stringify({{
-              user_id: user_id,
-              map_data: mapData,
-          }}),
-      }})
-          .then((response) => response.json())
-          .then((data) => {{
-              if (data.status === "success") {{
-                  alert("Map data saved successfully!");
-              }} else {{
-                  alert("Failed to save map data.");
-              }}
-          }})
-          .catch((error) => {{
-              console.error("Error saving map data:", error);
-          }});
-     }}
-
+        fetch("https://fastapi-test-production-1ba4.up.railway.app/save-map/", {{
+            method: "POST",
+            headers: {{
+                "Content-Type": "application/json",
+            }},
+            body: JSON.stringify({{
+                user_id: user_id,
+                map_data: mapData
+            }})
+        }})
+        .then(response => response.json())
+        .then(data => {{
+            if (data.status === "success") {{
+                alert("Map data saved successfully!");
+            }} else {{
+                alert("Failed to save map data.");
+            }}
+        }})
+        .catch(error => {{
+            console.error("Error saving map data:", error);
+        }});
+    }}
 
     // Function to load the saved map data from the backend
    function loadMap() {{
-      const user_id = "user1"; // Replace with dynamic user ID if needed
+    const user_id = "user1";  // Replace with dynamic user ID if needed
 
-      fetch(`https://fastapi-test-production-1ba4.up.railway.app/load-map/${{user_id}}`)
-          .then((response) => response.json())
-          .then((data) => {{
-              if (data.status === "success") {{
-                  const savedMapData = data.map_data;
+    fetch(`https://fastapi-test-production-1ba4.up.railway.app/load-map/${{user_id}}`)
+    .then(response => response.json())
+    .then(data => {{
+        if (data.status === "success") {{
+            const savedMapData = data.map_data;
 
-                  // Clear existing drawings before loading new data
-                  Draw.deleteAll();
+            // Clear existing drawings before loading new data
+            Draw.deleteAll();
+            
+            // Add the saved features back to the map
+            Draw.add(savedMapData);
 
-                  // Add the saved features back to the map
-                  Draw.add(savedMapData);
+            // Restore feature colors, names, and update pipeData for distances
+            savedMapData.features.forEach((feature) => {{
+                if (feature.properties.color) {{
+                    featureColors[feature.id] = feature.properties.color;
+                }}
+                if (feature.properties.name) {{
+                    featureNames[feature.id] = feature.properties.name;
+                }}
+                if (feature.geometry.type === 'LineString') {{
+                    const length = turf.length(feature, {{ units: 'meters' }});
+                    pipeData[feature.id] = {{
+                        name: featureNames[feature.id],
+                        distance: length
+                    }};
+                }}
+            }});
 
-                  // Restore feature colors, names, and update pipeData for distances
-                  savedMapData.features.forEach((feature) => {{
-                      if (feature.properties.color) {{
-                          featureColors[feature.id] = feature.properties.color;
-                      }}
-                      if (feature.properties.name) {{
-                          featureNames[feature.id] = feature.properties.name;
-                      }}
-                      if (feature.geometry.type === 'LineString') {{
-                          const length = turf.length(feature, {{ units: 'meters' }});
-                          pipeData[feature.id] = {{
-                              name: feature.properties.name,
-                              distance: length,
-                              startLandmark: feature.properties.startLandmark,
-                              endLandmark: feature.properties.endLandmark,
-                          }};
-                      }}
-                  }});
+            // Send the updated pipe data to the backend
+            sendPipeDataToBackend();
 
-                  // Update the sidebar measurements with the loaded features
-                  updateSidebarMeasurements({{ features: savedMapData.features }});
+            // Update the sidebar measurements with the loaded features
+            updateSidebarMeasurements({{ features: savedMapData.features }});
 
-                  alert("Map data loaded successfully!");
-              }} else {{
-                  alert("No saved map data found.");
-              }}
-          }})
-          .catch((error) => {{
-              console.error("Error loading map data:", error);
-          }});
-     }}
-
+            alert("Map data loaded successfully!");
+        }} else {{
+            alert("No saved map data found.");
+        }}
+    }})
+    .catch(error => {{
+        console.error("Error loading map data:", error);
+    }});
+}}
 
 
     window.onbeforeunload = function () {{
@@ -567,12 +550,6 @@ function sendPipeDataToBackend() {{
             features.forEach(function (feature, index) {{
                 if (feature.geometry.type === 'LineString') {{
                     const length = turf.length(feature, {{ units: 'meters' }});
-                    const pipeId = feature.id;
-
-                   
-                    const startLandmark = feature.properties.startLandmark || 'Unknown';
-                    const endLandmark = feature.properties.endLandmark || 'Unknown';
-                    
                     totalDistances.push(length);
                     const startCoord = feature.geometry.coordinates[0];
                     const endCoord = feature.geometry.coordinates[feature.geometry.coordinates.length - 1];
@@ -733,40 +710,41 @@ function sendPipeDataToBackend() {{
         toggleButton.innerText = "Open Sidebar";
     }});
 
-  // Function to handle deletion of features
-function deleteFeature(e) {{
+ function deleteFeature(e) {{
     const features = e.features;
+
     features.forEach(function (feature) {{
         const featureId = feature.id;
 
-        // Remove the feature's associated color and name from dictionaries
+        // Remove the feature's associated color, name, and data
         delete featureColors[featureId];
         delete featureNames[featureId];
         delete pipeData[featureId];
 
-        // Remove the layer associated with the feature, if it exists
+        // Remove the corresponding layer and source from the map
         if (map.getLayer('line-' + featureId)) {{
             map.removeLayer('line-' + featureId);
             map.removeSource('line-' + featureId);
         }}
-
         if (map.getLayer('polygon-' + featureId)) {{
             map.removeLayer('polygon-' + featureId);
             map.removeSource('polygon-' + featureId);
         }}
-
         if (map.getLayer('marker-' + featureId)) {{
             map.removeLayer('marker-' + featureId);
             map.removeSource('marker-' + featureId);
         }}
 
-        console.log(`Feature ${{featureId}} and its color have been removed.`);
+        console.log(`Feature ${{featureId}} and its associated data have been removed.`);
     }});
 
-   
-    updateSidebarMeasurements(e)
-}}
+    // Clear the Draw control's internal memory of the deleted feature
+    Draw.deleteAll();
 
+    // Ensure the sidebar measurements are updated
+    updateSidebarMeasurements(e);
+    mapSaved = false;
+}}
 
 </script>
 </body>
