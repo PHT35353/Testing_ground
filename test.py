@@ -719,6 +719,7 @@ function deleteFeature(e) {{
         // Remove the feature's associated color and name from dictionaries
         delete featureColors[featureId];
         delete featureNames[featureId];
+        delete pipeData[featureId];
 
         // Remove the layer associated with the feature, if it exists
         if (map.getLayer('line-' + featureId)) {{
