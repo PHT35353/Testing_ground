@@ -710,26 +710,26 @@ function sendPipeDataToBackend() {{
         toggleButton.innerText = "Open Sidebar";
     }});
 
- function deleteFeature(e) {{
+function deleteFeature(e) {{
     const features = e.features;
-
     features.forEach(function (feature) {{
         const featureId = feature.id;
 
-        // Remove the feature's associated color, name, and data
+        // Remove the feature's associated color and name from dictionaries
         delete featureColors[featureId];
         delete featureNames[featureId];
-        delete pipeData[featureId];
 
-        // Remove the corresponding layer and source from the map
+        // Remove the layer and source associated with the feature, if they exist
         if (map.getLayer('line-' + featureId)) {{
             map.removeLayer('line-' + featureId);
             map.removeSource('line-' + featureId);
         }}
+
         if (map.getLayer('polygon-' + featureId)) {{
             map.removeLayer('polygon-' + featureId);
             map.removeSource('polygon-' + featureId);
         }}
+
         if (map.getLayer('marker-' + featureId)) {{
             map.removeLayer('marker-' + featureId);
             map.removeSource('marker-' + featureId);
@@ -738,13 +738,10 @@ function sendPipeDataToBackend() {{
         console.log(`Feature ${{featureId}} and its associated data have been removed.`);
     }});
 
-    // Clear the Draw control's internal memory of the deleted feature
-    Draw.deleteAll();
-
-    // Ensure the sidebar measurements are updated
-    updateSidebarMeasurements(e);
-    mapSaved = false;
+    // Update the sidebar measurements to reflect the remaining features
+    updateSidebarMeasurements({{ features: Draw.getAll().features }});
 }}
+
 
 </script>
 </body>
