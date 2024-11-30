@@ -209,103 +209,103 @@ mapbox_map_html = f"""
     map.addControl(Draw);
 
      // Function to save the map data to the backend
-function saveMap() {{
-    const mapData = Draw.getAll(); // Get all drawn features from Mapbox
-    const user_id = "user1"; // Replace with dynamic user ID if needed
+    function saveMap() {{
+      const mapData = Draw.getAll(); // Get all drawn features from Mapbox
+      const user_id = "user1"; // Replace with dynamic user ID if needed
 
     // Save feature colors, names, and associations
-    mapData.features.forEach((feature) => {{
-        feature.properties.color = featureColors[feature.id] || 'defaultColor';
-        feature.properties.name = featureNames[feature.id] || '';
+      mapData.features.forEach((feature) => {{
+          feature.properties.color = featureColors[feature.id] || 'defaultColor';
+          feature.properties.name = featureNames[feature.id] || '';
 
         // Add landmark associations for lines
-        if (feature.geometry.type === 'LineString') {{
-            const startCoord = feature.geometry.coordinates[0];
-            const endCoord = feature.geometry.coordinates[feature.geometry.coordinates.length - 1];
+          if (feature.geometry.type === 'LineString') {{
+              const startCoord = feature.geometry.coordinates[0];
+              const endCoord = feature.geometry.coordinates[feature.geometry.coordinates.length - 1];
 
-            const startLandmark = landmarks.find(
-                (lm) => turf.distance(lm.geometry.coordinates, startCoord) < 0.01
-            );
-            const endLandmark = landmarks.find(
-                (lm) => turf.distance(lm.geometry.coordinates, endCoord) < 0.01
-            );
+              const startLandmark = landmarks.find(
+                  (lm) => turf.distance(lm.geometry.coordinates, startCoord) < 0.01
+              );
+              const endLandmark = landmarks.find(
+                  (lm) => turf.distance(lm.geometry.coordinates, endCoord) < 0.01
+              );
 
-            feature.properties.startLandmark = startLandmark ? startLandmark.properties.name : null;
-            feature.properties.endLandmark = endLandmark ? endLandmark.properties.name : null;
-        }}
-    }});
+              feature.properties.startLandmark = startLandmark ? startLandmark.properties.name : null;
+              feature.properties.endLandmark = endLandmark ? endLandmark.properties.name : null;
+          }}
+      }});
 
-    fetch("https://fastapi-test-production-1ba4.up.railway.app/save-map/", {{
-        method: "POST",
-        headers: {{
-            "Content-Type": "application/json",
-        }},
-        body: JSON.stringify({{
-            user_id: user_id,
-            map_data: mapData,
-        }}),
-    }})
-        .then((response) => response.json())
-        .then((data) => {{
-            if (data.status === "success") {{
-                alert("Map data saved successfully!");
-            }} else {{
-                alert("Failed to save map data.");
-            }}
-        }})
-        .catch((error) => {{
-            console.error("Error saving map data:", error);
-        }});
-}}
+      fetch("https://fastapi-test-production-1ba4.up.railway.app/save-map/", {{
+          method: "POST",
+          headers: {{
+              "Content-Type": "application/json",
+          }},
+          body: JSON.stringify({{
+              user_id: user_id,
+              map_data: mapData,
+          }}),
+      }})
+          .then((response) => response.json())
+          .then((data) => {{
+              if (data.status === "success") {{
+                  alert("Map data saved successfully!");
+              }} else {{
+                  alert("Failed to save map data.");
+              }}
+          }})
+          .catch((error) => {{
+              console.error("Error saving map data:", error);
+          }});
+     }}
 
 
     // Function to load the saved map data from the backend
-function loadMap() {{
-    const user_id = "user1"; // Replace with dynamic user ID if needed
+   function loadMap() {{
+      const user_id = "user1"; // Replace with dynamic user ID if needed
 
-    fetch(`https://fastapi-test-production-1ba4.up.railway.app/load-map/${{user_id}}`)
-        .then((response) => response.json())
-        .then((data) => {{
-            if (data.status === "success") {{
-                const savedMapData = data.map_data;
+      fetch(`https://fastapi-test-production-1ba4.up.railway.app/load-map/${{user_id}}`)
+          .then((response) => response.json())
+          .then((data) => {{
+              if (data.status === "success") {{
+                  const savedMapData = data.map_data;
 
-                // Clear existing drawings before loading new data
-                Draw.deleteAll();
+                  // Clear existing drawings before loading new data
+                  Draw.deleteAll();
 
-                // Add the saved features back to the map
-                Draw.add(savedMapData);
+                  // Add the saved features back to the map
+                  Draw.add(savedMapData);
 
-                // Restore feature colors, names, and update pipeData for distances
-                savedMapData.features.forEach((feature) => {{
-                    if (feature.properties.color) {{
-                        featureColors[feature.id] = feature.properties.color;
-                    }}
-                    if (feature.properties.name) {{
-                        featureNames[feature.id] = feature.properties.name;
-                    }}
-                    if (feature.geometry.type === 'LineString') {{
-                        const length = turf.length(feature, {{ units: 'meters' }});
-                        pipeData[feature.id] = {{
-                            name: feature.properties.name,
-                            distance: length,
-                            startLandmark: feature.properties.startLandmark,
-                            endLandmark: feature.properties.endLandmark,
-                        }};
-                    }}
-                }});
+                  // Restore feature colors, names, and update pipeData for distances
+                  savedMapData.features.forEach((feature) => {{
+                      if (feature.properties.color) {{
+                          featureColors[feature.id] = feature.properties.color;
+                      }}
+                      if (feature.properties.name) {{
+                          featureNames[feature.id] = feature.properties.name;
+                      }}
+                      if (feature.geometry.type === 'LineString') {{
+                          const length = turf.length(feature, {{ units: 'meters' }});
+                          pipeData[feature.id] = {{
+                              name: feature.properties.name,
+                              distance: length,
+                              startLandmark: feature.properties.startLandmark,
+                              endLandmark: feature.properties.endLandmark,
+                          }};
+                      }}
+                  }});
 
-                // Update the sidebar measurements with the loaded features
-                updateSidebarMeasurements({{ features: savedMapData.features }});
+                  // Update the sidebar measurements with the loaded features
+                  updateSidebarMeasurements({{ features: savedMapData.features }});
 
-                alert("Map data loaded successfully!");
-            }} else {{
-                alert("No saved map data found.");
-            }}
-        }})
-        .catch((error) => {{
-            console.error("Error loading map data:", error);
-        }});
-}}
+                  alert("Map data loaded successfully!");
+              }} else {{
+                  alert("No saved map data found.");
+              }}
+          }})
+          .catch((error) => {{
+              console.error("Error loading map data:", error);
+          }});
+     }}
 
 
 
@@ -567,9 +567,9 @@ function sendPipeDataToBackend() {{
             features.forEach(function (feature, index) {{
                 if (feature.geometry.type === 'LineString') {{
                     const length = turf.length(feature, {{ units: 'meters' }});
-                    onst pipeId = feature.id;
+                    const pipeId = feature.id;
 
-                   // Use stored associations if available
+                   
                     const startLandmark = feature.properties.startLandmark || 'Unknown';
                     const endLandmark = feature.properties.endLandmark || 'Unknown';
                     
