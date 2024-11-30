@@ -686,16 +686,29 @@ function sendPipeDataToBackend() {{
         document.getElementById('measurements').innerHTML = sidebarContent;
    }}
     
+// Function to toggle the sidebar
     function toggleSidebar() {{
         var sidebar = document.getElementById('sidebar');
+        var toggleButton = document.getElementById('toggleSidebar');
+
         if (sidebar.classList.contains('collapsed')) {{
             sidebar.classList.remove('collapsed');
-            document.getElementById('toggleSidebar').innerText = "Close Sidebar";
+            toggleButton.innerText = "Close Sidebar";
         }} else {{
             sidebar.classList.add('collapsed');
-            document.getElementById('toggleSidebar').innerText = "Open Sidebar";
+            toggleButton.innerText = "Open Sidebar";
         }}
     }}
+
+    // Initialize the sidebar to be collapsed when the page loads
+    document.addEventListener("DOMContentLoaded", function () {{
+        var sidebar = document.getElementById('sidebar');
+        var toggleButton = document.getElementById('toggleSidebar');
+
+        // Add the 'collapsed' class to collapse the sidebar initially
+        sidebar.classList.add('collapsed');
+        toggleButton.innerText = "Open Sidebar";
+    }});
 
   // Function to handle deletion of features
 function deleteFeature(e) {{
